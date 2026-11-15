@@ -21,7 +21,8 @@ def main() -> None:
     logging.getLogger("jarvis").info(
         "Jarvis startet (Modus %s, %s:%s, Modell %s)", config.access_mode, host, config.port, config.model
     )
-    uvicorn.run(create_app(config), host=host, port=config.port, proxy_headers=False, log_level="info")
+    uvicorn.run(create_app(config), host=host, port=config.port, proxy_headers=False, log_level="info",
+                access_log=False)  # access log would record ?token=
 
 
 if __name__ == "__main__":

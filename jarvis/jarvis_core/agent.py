@@ -7,18 +7,31 @@ import json
 import logging
 from typing import Any, AsyncIterator
 
+import anthropic
+
 from .config import Config
 from .llm import LLM, describe_error
 from .prompts import CHANNELS, context_block, system_blocks
 from .store import Store
 from .tools import CONFIRM, Registry, ToolError, server_tools, validate_input
+from .tools.base import readable
 
 log = logging.getLogger("jarvis.agent")
 
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
+# Thinking blocks are bound to system + tools + earlier messages. When the configuration changes
+# (new integration, updated prompt) old blocks no longer match; drop them instead of failing.
+BINDING_BETA = "thinking-binding-controls-2026-08-01"
 TOOL_TIMEOUT = 90.0
 PENDING_TEXT = "wartet auf Freigabe durch den Nutzer"
+CANCELLED_TEXT = "vom Nutzer abgebrochen"
 SERVER_TOOL_LABELS = {"web_search": "Suche im Web …", "web_fetch": "Lese eine Webseite …"}
+MAX_CONTEXT_NOTES = 30
+MAX_CONTEXT_NOTE_CHARS = 4000
+
+
+class Cancelled(Exception):
+    pass
 
 
 def event(_type: str, **data: Any) -> dict:
@@ -58,6 +71,39 @@ def _tool_result(tool_use_id: str, content: Any, is_error: bool = False) -> dict
     return block
 
 
+async def _until_cancelled(agen: AsyncIterator[dict], cancel: asyncio.Event) -> AsyncIterator[dict]:
+    """Iterates `agen` but stops (closing it) as soon as `cancel` is set."""
+    it = agen.__aiter__()
+    try:
+        while True:
+            if cancel.is_set():
+                raise Cancelled()
+            nxt = asyncio.ensure_future(it.__anext__())
+            waiter = asyncio.ensure_future(cancel.wait())
+            done, _ = await asyncio.wait({nxt, waiter}, return_when=asyncio.FIRST_COMPLETED)
+            if nxt in done:
+                waiter.cancel()
+                try:
+                    item = nxt.result()
+                except StopAsyncIteration:
+                    return
+                yield item
+            else:
+                nxt.cancel()
+                try:
+                    await nxt
+                except (asyncio.CancelledError, StopAsyncIteration, Exception):  # noqa: BLE001
+                    pass
+                raise Cancelled()
+    finally:
+        aclose = getattr(it, "aclose", None)
+        if aclose:
+            try:
+                await aclose()
+            except Exception:  # noqa: BLE001
+                pass
+
+
 class Agent:
     def __init__(self, config: Config, store: Store, registry: Registry, llm: LLM):
         self.config = config
@@ -65,6 +111,7 @@ class Agent:
         self.registry = registry
         self.llm = llm
         self._locks: dict[str, asyncio.Lock] = {}
+        self._cancel: dict[str, asyncio.Event] = {}
 
     # Request -----------------------------------------------------------
 
@@ -76,14 +123,29 @@ class Agent:
             "system": system_blocks(channel, cfg.user_name),
             "tools": self.registry.api_definitions() + server_tools(cfg),
             "messages": messages,
-            "thinking": {"type": "adaptive"},
+            "thinking": {"type": "adaptive", "block_binding": {"prefix_mismatch_behavior": "drop_block"}},
             "output_config": {"effort": cfg.effort},
             "cache_control": {"type": "ephemeral"},
+            "betas": [BINDING_BETA],
         }
         if cfg.fallbacks:
-            params["betas"] = [FALLBACK_BETA]
+            params["betas"].append(FALLBACK_BETA)
             params["fallbacks"] = "default"
         return params
+
+    # Running state -------------------------------------------------------
+
+    def is_running(self, cid: str) -> bool:
+        lock = self._locks.get(cid)
+        return bool(lock and lock.locked())
+
+    def cancel(self, cid: str) -> bool:
+        """Asks a running request to stop. Returns whether one was running."""
+        ev = self._cancel.get(cid)
+        if not self.is_running(cid) or ev is None:
+            return False
+        ev.set()
+        return True
 
     # Main loop -----------------------------------------------------------
 
@@ -104,24 +166,34 @@ class Agent:
             yield event("done")
             return
         async with lock:
-            yield event("start", conversation_id=conversation_id)
-            self.store.add_message(conversation_id, "user", user_text)
+            cancel = asyncio.Event()
+            self._cancel[conversation_id] = cancel
             reply: list[str] = []
             try:
-                async for ev in self._loop(conversation_id, user_text, channel, reply):
-                    yield ev
-            except Exception as exc:  # noqa: BLE001 - every failure must end as an error event
-                log.exception("agent run failed")
-                yield event("error", message=describe_error(exc))
+                yield event("start", conversation_id=conversation_id)
+                self.store.add_message(conversation_id, "user", user_text)
+                try:
+                    async for ev in self._loop(conversation_id, user_text, channel, reply, cancel):
+                        yield ev
+                except Cancelled:
+                    yield event("error", message="Abgebrochen.", cancelled=True)
+                except anthropic.APIError as exc:
+                    log.warning("Claude API error: %s", type(exc).__name__)
+                    yield event("error", message=describe_error(exc))
+                except Exception as exc:  # noqa: BLE001 - every failure must end as an error event
+                    log.exception("agent run failed")
+                    yield event("error", message=describe_error(exc))
+                yield event("done")
             finally:
                 text = "".join(reply).strip()
                 if text:
                     self.store.add_message(conversation_id, "assistant", text)
-            yield event("done")
+                self._cancel.pop(conversation_id, None)
 
-    async def _loop(self, cid: str, user_text: str, channel: str, reply: list[str]) -> AsyncIterator[dict]:
+    async def _loop(self, cid: str, user_text: str, channel: str, reply: list[str],
+                    cancel: asyncio.Event) -> AsyncIterator[dict]:
         history = self.store.get_api_messages(cid)
-        notes = self.store.search_notes(limit=30) if not history else None
+        notes = self._context_notes() if not history else None
         resolved = self.store.take_unreported(cid)
         context = context_block(self.config.timezone, notes=notes, resolved=resolved)
         user_msg = {"role": "user", "content": [
@@ -133,9 +205,11 @@ class Agent:
 
         json_retries = 0
         for _step in range(max(1, self.config.max_steps)):
+            if cancel.is_set():
+                raise Cancelled()
             try:
                 content, stop_reason = None, None
-                async for item in self._stream_turn(channel, messages, reply):
+                async for item in _until_cancelled(self._stream_turn(channel, messages, reply), cancel):
                     if item["type"] == "_final":
                         content, stop_reason = item["content"], item["stop_reason"]
                     else:
@@ -156,9 +230,13 @@ class Agent:
 
             tool_uses = [b for b in content if b.get("type") == "tool_use"]
             if stop_reason == "max_tokens":
-                if not tool_uses:
+                if content and not tool_uses:
                     self._append(cid, messages, {"role": "assistant", "content": content})
                 yield event("error", message="Die Antwort wurde wegen der Längenbegrenzung abgeschnitten.")
+                return
+
+            if not content:
+                # Never store an empty assistant turn; the API rejects it on the next request.
                 return
 
             assistant = {"role": "assistant", "content": content}
@@ -168,19 +246,35 @@ class Agent:
 
             if stop_reason == "tool_use" and tool_uses:
                 results = []
+                stopped = False
                 for block in tool_uses:
+                    if stopped or cancel.is_set():
+                        stopped = True
+                        results.append(_tool_result(block.get("id", ""), CANCELLED_TEXT, True))
+                        continue
                     async for item in self._execute(cid, block):
                         if item["type"] == "_result":
                             results.append(item["block"])
                         else:
                             yield item
                 self._append(cid, messages, assistant, {"role": "user", "content": results})
+                if stopped or cancel.is_set():
+                    raise Cancelled()
                 continue
 
             self._append(cid, messages, assistant)
             return
 
         yield event("error", message="Abgebrochen: zu viele Arbeitsschritte in einer Anfrage.")
+
+    def _context_notes(self) -> list[dict]:
+        notes, total = [], 0
+        for n in self.store.search_notes(limit=MAX_CONTEXT_NOTES):
+            total += len(n["text"])
+            if total > MAX_CONTEXT_NOTE_CHARS:
+                break
+            notes.append(n)
+        return notes
 
     def _append(self, cid: str, messages: list[dict], *new: dict) -> None:
         messages.extend(new)
@@ -231,6 +325,11 @@ class Agent:
             yield {"type": "_result", "block": _tool_result(tuid, f"Unbekanntes Werkzeug: {name}", True)}
             return
         errors = validate_input(tool.input_schema, tool_input)
+        if not errors and tool.precheck:
+            try:
+                tool.precheck(tool_input)
+            except ToolError as exc:
+                errors = [str(exc)]
         if errors:
             self.store.log(tool=name, risk=tool.risk_for(tool_input if isinstance(tool_input, dict) else {}),
                            tool_input=tool_input, result="; ".join(errors), status="invalid",
@@ -259,41 +358,45 @@ class Agent:
             })}
             return
 
-        ok, result = await self._run_handler(tool, tool_input)
+        status, result = await self._run_handler(tool, tool_input)
+        ok = status == "ok"
         self.store.log(tool=name, risk=risk, tool_input=tool_input, result=_text(result),
-                       status="ok" if ok else "error", conversation_id=cid)
+                       status=status, conversation_id=cid)
         yield event("tool", name=name, label=label, status="done" if ok else "error")
         yield {"type": "_result", "block": _tool_result(tuid, result, not ok)}
 
-    async def _run_handler(self, tool, tool_input: dict) -> tuple[bool, Any]:
+    async def _run_handler(self, tool, tool_input: dict) -> tuple[str, Any]:
+        """(status, result) with status `ok`, `error` or `timeout`."""
         try:
-            return True, await asyncio.wait_for(tool.handler(tool_input), timeout=TOOL_TIMEOUT)
+            return "ok", await asyncio.wait_for(tool.handler(tool_input), timeout=TOOL_TIMEOUT)
         except ToolError as exc:
-            return False, str(exc)
+            return "error", str(exc)
         except asyncio.TimeoutError:
-            return False, "Zeitüberschreitung beim Werkzeug."
+            return "timeout", ("Zeitüberschreitung: Das Ergebnis ist unbekannt. Es wird nicht automatisch "
+                               "wiederholt; bitte prüfen, ob die Aktion stattgefunden hat.")
         except Exception as exc:  # noqa: BLE001
             log.exception("tool %s failed", tool.name)
-            return False, f"Werkzeugfehler: {type(exc).__name__}: {exc}"
+            return "error", f"Werkzeugfehler: {type(exc).__name__}: {exc}"
 
     # Pending actions -------------------------------------------------------
 
     async def approve(self, pending_id: str) -> tuple[bool, str] | None:
-        """Runs an approved action. None if no such pending action exists (or it was resolved)."""
+        """Runs an approved action once. None if no such pending action exists (or it was resolved)."""
         action = self.store.get_pending(pending_id)
         if not action or not self.store.claim_pending(pending_id, "executing"):
             return None
         tool = self.registry.get(action["tool"])
         if tool is None:
-            ok, result = False, "Werkzeug ist nicht mehr eingerichtet."
+            status, result = "error", "Werkzeug ist nicht mehr eingerichtet."
         else:
-            ok, result = await self._run_handler(tool, action["input"])
-        text = _text(result)
-        self.store.finish_pending(pending_id, "done" if ok else "failed", text)
+            status, result = await self._run_handler(tool, action["input"])
+        text = readable(result)
+        final = {"ok": "done", "error": "failed", "timeout": "unknown"}[status]
+        self.store.finish_pending(pending_id, final, text)
         self.store.log(tool=action["tool"], risk=CONFIRM, tool_input=action["input"], result=text,
-                       status="approved" if ok else "approved_failed",
+                       status={"ok": "approved", "error": "approved_failed", "timeout": "approved_unknown"}[status],
                        conversation_id=action["conversation_id"])
-        return ok, text
+        return status == "ok", text
 
     def reject(self, pending_id: str) -> bool:
         action = self.store.get_pending(pending_id)

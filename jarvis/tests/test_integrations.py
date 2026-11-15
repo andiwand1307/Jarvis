@@ -10,35 +10,83 @@ from jarvis_core.config import Config, HAConfig
 from jarvis_core.tools import Registry
 from jarvis_core.tools import homeassistant as ha
 from jarvis_core.tools import todoist
-from jarvis_core.tools.base import CONFIRM, WRITE
+from jarvis_core.tools.base import CONFIRM, WRITE, ToolError, validate_input
 
 from .conftest import FakeLLM, text_turn, tool_turn
 
 
-@pytest.mark.parametrize("domain", ["light", "switch", "media_player", "scene", "script", "climate", "Light"])
-def test_write_domains(domain):
-    assert ha.domain_risk(domain) == WRITE
-
-
-@pytest.mark.parametrize("domain", ["lock", "alarm_control_panel", "cover", "siren", "valve",
-                                    "homeassistant", "automation", "notify", "fan", "", "unknown_xyz"])
-def test_confirm_domains(domain):
-    assert ha.domain_risk(domain) == CONFIRM
+TRUSTED = ("scene.abend", "script.gute_nacht")
 
 
 @pytest.mark.parametrize("inp,expected", [
+    # positive list, entity targets of the same domain
     ({"domain": "light", "service": "turn_on", "entity_id": "light.kueche"}, WRITE),
     ({"domain": "light", "service": "turn_on", "entity_id": ["light.a", "light.b"]}, WRITE),
+    ({"domain": "switch", "service": "toggle", "entity_id": "switch.kaffee"}, WRITE),
+    ({"domain": "media_player", "service": "volume_set", "entity_id": "media_player.wz", "data": {"volume_level": 0.3}}, WRITE),
+    ({"domain": "climate", "service": "set_temperature", "entity_id": "climate.bad", "data": {"temperature": 21}}, WRITE),
+    ({"domain": "fan", "service": "turn_off", "entity_id": "fan.decke"}, WRITE),
+    ({"domain": "light", "service": "turn_on", "data": {"entity_id": "light.flur", "brightness_pct": 50}}, WRITE),
+    # sensitive domains
     ({"domain": "lock", "service": "unlock", "entity_id": "lock.haustuer"}, CONFIRM),
     ({"domain": "cover", "service": "open_cover", "entity_id": "cover.garage"}, CONFIRM),
+    ({"domain": "alarm_control_panel", "service": "alarm_disarm", "entity_id": "alarm_control_panel.haus"}, CONFIRM),
+    ({"domain": "siren", "service": "turn_on", "entity_id": "siren.a"}, CONFIRM),
+    ({"domain": "valve", "service": "open_valve", "entity_id": "valve.a"}, CONFIRM),
+    # services outside the positive list, also on harmless domains
+    ({"domain": "light", "service": "reload"}, CONFIRM),
+    ({"domain": "homeassistant", "service": "turn_on", "entity_id": "light.a"}, CONFIRM),
+    ({"domain": "homeassistant", "service": "restart"}, CONFIRM),
+    ({"domain": "automation", "service": "trigger", "entity_id": "automation.x"}, CONFIRM),
+    ({"domain": "input_boolean", "service": "turn_on", "entity_id": "input_boolean.alarm_scharf"}, CONFIRM),
+    ({"domain": "button", "service": "press", "entity_id": "button.tor"}, CONFIRM),
+    ({"domain": "notify", "service": "notify", "data": {"message": "x"}}, CONFIRM),
+    ({"domain": "shell_command", "service": "x"}, CONFIRM),
+    ({"domain": "rest_command", "service": "x"}, CONFIRM),
+    ({"domain": "python_script", "service": "x"}, CONFIRM),
+    ({"domain": "group", "service": "set", "data": {"object_id": "x", "entities": ["lock.a"]}}, CONFIRM),
+    # entity domains must match the service domain
     ({"domain": "switch", "service": "turn_on", "entity_id": "lock.haustuer"}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "entity_id": "group.alle"}, CONFIRM),
     ({"domain": "light", "service": "turn_on", "data": {"entity_id": "alarm_control_panel.x"}}, CONFIRM),
     ({"domain": "light", "service": "turn_off", "entity_id": "all"}, CONFIRM),
-    ({"domain": "homeassistant", "service": "turn_on", "entity_id": "light.a"}, CONFIRM),
-    ({"domain": "light", "service": "turn_on", "data": {"area_id": "kueche"}}, WRITE),
+    ({"domain": "light", "service": "turn_on"}, CONFIRM),
+    # unresolved targets
+    ({"domain": "light", "service": "turn_on", "data": {"area_id": "kueche"}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "entity_id": "light.a", "data": {"device_id": "abc"}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "data": {"target": {"label_id": "x"}}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "data": {"target": {"floor_id": "og"}}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "data": {"entity_id": {"a": "lock.x"}}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "data": "nope"}, CONFIRM),
+    # traversal and malformed names
+    ({"domain": "light", "service": "../lock/unlock", "data": {"area_id": "flur"}}, CONFIRM),
+    ({"domain": "light", "service": "../../../../addons/core_ssh/stop"}, CONFIRM),
+    ({"domain": "Light ", "service": "turn_on", "entity_id": "light.a"}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "entity_id": "light.a/../../x"}, CONFIRM),
+    # scenes and scripts: only trusted entities, only turn_on / script.<name>
+    ({"domain": "scene", "service": "turn_on", "entity_id": "scene.abend"}, WRITE),
+    ({"domain": "scene", "service": "turn_on", "entity_id": ["scene.abend", "scene.party"]}, CONFIRM),
+    ({"domain": "scene", "service": "apply", "data": {"entities": {"lock.haustuer": "unlocked"}}}, CONFIRM),
+    ({"domain": "scene", "service": "create", "data": {"scene_id": "x", "entities": {"lock.a": "unlocked"}}}, CONFIRM),
+    ({"domain": "script", "service": "turn_on", "entity_id": "script.gute_nacht"}, WRITE),
+    ({"domain": "script", "service": "gute_nacht"}, WRITE),
+    ({"domain": "script", "service": "gute_nacht", "entity_id": "lock.x"}, CONFIRM),
+    ({"domain": "script", "service": "turn_on", "entity_id": "script.haustuer_oeffnen"}, CONFIRM),
+    ({"domain": "script", "service": "haustuer_oeffnen"}, CONFIRM),
+    ({"domain": "script", "service": "reload"}, CONFIRM),
 ])
 def test_service_risk(inp, expected):
-    assert ha.service_risk(inp) == expected
+    assert ha.service_risk(inp, TRUSTED) == expected
+
+
+def test_scenes_without_trust_list_are_confirm():
+    assert ha.service_risk({"domain": "scene", "service": "turn_on", "entity_id": "scene.abend"}) == CONFIRM
+    assert ha.service_risk({"domain": "script", "service": "gute_nacht"}) == CONFIRM
+
+
+def test_trusted_entities_from_env():
+    cfg = Config.from_env({"HA_URL": "http://ha", "HA_TOKEN": "t", "HA_TRUSTED_ENTITIES": "scene.abend, Script.Gute_Nacht"})
+    assert cfg.ha.trusted_entities == ("scene.abend", "script.gute_nacht")
 
 
 class Recorder:
@@ -53,10 +101,65 @@ class Recorder:
         return httpx.MockTransport(handle)
 
 
-def ha_registry(rec: Recorder) -> Registry:
+def ha_registry(rec: Recorder, trusted=()) -> Registry:
     reg = Registry()
-    ha.register(reg, HAConfig(base_url="http://supervisor/core/api", token="tok"), transport=rec.transport())
+    ha.register(reg, HAConfig(base_url="http://supervisor/core/api", token="tok", trusted_entities=tuple(trusted)),
+                transport=rec.transport())
     return reg
+
+
+@pytest.mark.parametrize("bad", [
+    {"domain": "light", "service": "../lock/unlock"},
+    {"domain": "light", "service": "../../../../addons/core_ssh/stop"},
+    {"domain": "light/../lock", "service": "unlock"},
+    {"domain": "light", "service": "turn_on?x=1"},
+    {"domain": "light", "service": "turn_on\n"},
+    {"domain": "light", "service": "turn_on", "entity_id": {"a": 1}},
+])
+async def test_ha_handler_rejects_traversal_even_after_approval(bad):
+    rec = Recorder(lambda r: httpx.Response(200, json=[]))
+    reg = ha_registry(rec)
+    tool = reg.get("ha_call_service")
+    assert tool.risk_for(bad) == CONFIRM
+    with pytest.raises(ToolError):
+        await tool.handler(bad)
+    assert rec.requests == []
+
+
+def test_ha_schema_rejects_bad_names():
+    tool = ha_registry(Recorder(lambda r: httpx.Response(200))).get("ha_call_service")
+    assert validate_input(tool.input_schema, {"domain": "light", "service": "../lock/unlock"})
+    assert validate_input(tool.input_schema, {"domain": "light", "service": "turn_on\n"})
+    assert not validate_input(tool.input_schema, {"domain": "light", "service": "turn_on"})
+
+
+@pytest.mark.parametrize("eid", ["../services", "../../../addons", "../config", "light.a?x=1", "light.a/b", "light"])
+async def test_ha_get_states_rejects_bad_ids(eid):
+    rec = Recorder(lambda r: httpx.Response(200, json={}))
+    tool = ha_registry(rec).get("ha_get_states")
+    assert validate_input(tool.input_schema, {"entity_id": eid})
+    with pytest.raises(ToolError):
+        await tool.handler({"entity_id": eid})
+    assert rec.requests == []
+
+
+async def test_ha_calendar_rejects_bad_ids():
+    rec = Recorder(lambda r: httpx.Response(200, json=[]))
+    tool = ha_registry(rec).get("ha_calendar_events")
+    with pytest.raises(ToolError):
+        await tool.handler({"entity_id": "calendar.x/../../states"})
+    with pytest.raises(ToolError):
+        await tool.handler({"entity_id": "light.x"})
+    assert rec.requests == []
+
+
+async def test_ha_trusted_script_runs_via_agent_without_approval(config, store):
+    rec = Recorder(lambda r: httpx.Response(200, json=[]))
+    llm = FakeLLM([tool_turn("ha_call_service", {"domain": "script", "service": "gute_nacht"}), text_turn("ok")])
+    agent = Agent(config, store, ha_registry(rec, trusted=["script.gute_nacht"]), llm)
+    events = [e async for e in agent.run(None, "gute Nacht", "web")]
+    assert not [e for e in events if e["type"] == "pending"]
+    assert rec.requests[0].url.path == "/core/api/services/script/gute_nacht"
 
 
 async def test_ha_call_service_write_runs_with_auth():
@@ -148,7 +251,7 @@ async def test_todoist_v1_endpoints():
     assert [p["name"] for p in projects] == ["Einkaufsliste", "Arbeit"]
     created = await reg.get("todoist_add_task").handler({"content": "Brot", "project_id": "p", "due_string": "morgen"})
     assert created["created"]["id"] == "2"
-    assert await reg.get("todoist_complete_task").handler({"task_id": "2"}) == {"completed": "2"}
+    assert (await reg.get("todoist_complete_task").handler({"task_id": "2"}))["completed"] == "2"
     assert all(r.headers["authorization"] == "Bearer tok" for r in rec.requests)
     assert reg.get("todoist_add_task").risk == WRITE
 
@@ -164,3 +267,19 @@ async def test_todoist_auth_error_is_tool_error(config, store):
         e["data"] for e in events if e["type"] == "tool"]
     result = llm.calls[1]["messages"][-1]["content"][0]
     assert result["is_error"] and "Token" in result["content"]
+
+
+@pytest.mark.parametrize("bad", ["1/../../projects/99/archive#", "1?x=1", "a b", "../x", ""])
+async def test_todoist_ids_validated(bad):
+    rec = Recorder(lambda r: httpx.Response(200, json={"results": [], "next_cursor": None}))
+    reg = Registry()
+    todoist.register(reg, "tok", transport=rec.transport())
+    assert validate_input(reg.get("todoist_complete_task").input_schema, {"task_id": bad})
+    with pytest.raises(ToolError):
+        await reg.get("todoist_complete_task").handler({"task_id": bad})
+    if bad:
+        with pytest.raises(ToolError):
+            await reg.get("todoist_find_tasks").handler({"project_id": bad})
+        with pytest.raises(ToolError):
+            await reg.get("todoist_add_task").handler({"content": "x", "project_id": bad})
+    assert rec.requests == []

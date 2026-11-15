@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
-from .base import READ, WRITE, Registry, Tool, ToolError
+from .base import READ, TODOIST_ID, WRITE, Registry, Tool, ToolError, require
 
 API_URL = "https://api.todoist.com/api/v1"
 MAX_ITEMS = 200
@@ -55,14 +56,15 @@ class TodoistClient:
     async def find_tasks(self, query: str = "", project_id: str = "") -> list[dict]:
         if query:
             return await self._paginate("/tasks/filter", {"query": query, "lang": "de"})
-        params = {"project_id": project_id} if project_id else {}
+        params = {"project_id": require(TODOIST_ID, project_id, "Projekt-ID")} if project_id else {}
         return await self._paginate("/tasks", params)
 
     async def add_task(self, body: dict) -> dict:
         return await self._request("POST", "/tasks", json=body)
 
     async def close_task(self, task_id: str) -> None:
-        await self._request("POST", f"/tasks/{task_id}/close")
+        require(TODOIST_ID, task_id, "Aufgaben-ID")
+        await self._request("POST", f"/tasks/{quote(task_id, safe='')}/close")
 
     async def projects(self) -> list[dict]:
         return await self._paginate("/projects", {})
@@ -98,6 +100,8 @@ def register(registry: Registry, token: str, transport: httpx.AsyncBaseTransport
         for key in ("description", "project_id", "due_string", "priority", "labels"):
             if inp.get(key) not in (None, "", []):
                 body[key] = inp[key]
+        if "project_id" in body:
+            require(TODOIST_ID, body["project_id"], "Projekt-ID")
         if "due_string" in body:
             body["due_lang"] = "de"
         task = await client.add_task(body)
@@ -105,7 +109,7 @@ def register(registry: Registry, token: str, transport: httpx.AsyncBaseTransport
 
     async def complete_task(inp: dict) -> dict:
         await client.close_task(str(inp["task_id"]))
-        return {"completed": inp["task_id"]}
+        return {"completed": inp["task_id"], "message": "Aufgabe abgehakt."}
 
     async def list_projects(inp: dict) -> dict:
         projects = await client.projects()
@@ -123,7 +127,8 @@ def register(registry: Registry, token: str, transport: httpx.AsyncBaseTransport
             "type": "object",
             "properties": {
                 "query": {"type": "string", "description": "Todoist-Filterausdruck."},
-                "project_id": {"type": "string", "description": "Nur Aufgaben dieses Projekts."},
+                "project_id": {"type": "string", "pattern": TODOIST_ID,
+                               "description": "Nur Aufgaben dieses Projekts."},
             },
             "additionalProperties": False,
         },
@@ -144,7 +149,7 @@ def register(registry: Registry, token: str, transport: httpx.AsyncBaseTransport
             "properties": {
                 "content": {"type": "string", "description": "Titel der Aufgabe."},
                 "description": {"type": "string"},
-                "project_id": {"type": "string"},
+                "project_id": {"type": "string", "pattern": TODOIST_ID},
                 "due_string": {"type": "string"},
                 "priority": {"type": "integer", "enum": [1, 2, 3, 4]},
                 "labels": {"type": "array", "items": {"type": "string"}},
@@ -162,7 +167,7 @@ def register(registry: Registry, token: str, transport: httpx.AsyncBaseTransport
         description="Hakt eine Todoist-Aufgabe als erledigt ab. Die ID kommt aus todoist_find_tasks.",
         input_schema={
             "type": "object",
-            "properties": {"task_id": {"type": "string"}},
+            "properties": {"task_id": {"type": "string", "pattern": TODOIST_ID}},
             "required": ["task_id"],
             "additionalProperties": False,
         },

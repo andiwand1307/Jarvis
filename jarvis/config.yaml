@@ -31,6 +31,7 @@ options:
   mail_password: ""
   mail_from: ""
   mail_drafts_folder: ""
+  ha_trusted_entities: []
 schema:
   anthropic_api_key: password
   model: str
@@ -47,3 +48,5 @@ schema:
   mail_password: password?
   mail_from: str?
   mail_drafts_folder: str?
+  ha_trusted_entities:
+    - str

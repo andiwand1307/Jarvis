@@ -162,7 +162,8 @@ async def test_mail_send_is_confirm_and_only_sent_after_approve(config, store, c
     events = await collect(agent, None, "schick die Mail")
     pending = [e["data"] for e in events if e["type"] == "pending"][0]
     assert pending["kind"] == "mail_send"
-    assert pending["details"] == {"to": "a@b.de", "subject": "Hallo", "body": "Text"}
+    assert pending["details"] == {"from": "u@x", "to": "a@b.de", "cc": "", "subject": "Hallo", "body": "Text",
+                                  "in_reply_to": ""}
     assert fake.sent == []
     ok, _ = await agent.approve(pending["id"])
     assert ok and len(fake.sent) == 1

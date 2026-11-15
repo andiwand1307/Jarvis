@@ -6,9 +6,10 @@ import asyncio
 import json
 import logging
 from typing import Any, AsyncIterator
-from urllib.parse import parse_qs
+from urllib.parse import parse_qsl, urlencode
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -16,7 +17,7 @@ from pydantic import BaseModel, Field
 from .agent import Agent
 from .config import Config
 from .llm import LLM, AnthropicLLM
-from .security import COOKIE_NAME, is_allowed, token_matches
+from .security import COOKIE_NAME, cookie_value, is_allowed, token_matches
 from .store import Store
 from .tools import Registry, build_registry
 
@@ -43,26 +44,29 @@ class AccessMiddleware:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])}
-        query = {k: v[0] for k, v in parse_qs(scope.get("query_string", b"").decode()).items()}
+        pairs = parse_qsl(scope.get("query_string", b"").decode("latin-1"), keep_blank_values=True)
+        query = dict(pairs)
         client = scope.get("client")
-        allowed, status = is_allowed(self.config, client[0] if client else None, scope.get("path", ""),
-                                     headers, query)
+        path = scope.get("path", "")
+        allowed, status = is_allowed(self.config, client[0] if client else None, path, headers, query,
+                                     scope.get("method", "GET"))
         if not allowed:
             message = "Anmeldung erforderlich." if status == 401 else "Zugriff verweigert."
             extra = {"WWW-Authenticate": "Bearer"} if status == 401 else None
             response = JSONResponse({"ok": False, "error": message}, status_code=status, headers=extra)
             return await response(scope, receive, send)
-        if self.config.access_mode == "token" and token_matches(self.config, query.get("token", "")):
-            # Opening the UI once with ?token=… stores the token in a cookie, so the
-            # browser's later API calls are authenticated without further changes.
-            cookie = f"{COOKIE_NAME}={self.config.token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000"
-
-            async def send_with_cookie(message):
-                if message["type"] == "http.response.start":
-                    message.setdefault("headers", []).append((b"set-cookie", cookie.encode("latin-1")))
-                await send(message)
-
-            return await self.app(scope, receive, send_with_cookie)
+        if (self.config.access_mode == "token" and not path.lstrip("/").startswith("api/")
+                and token_matches(self.config, query.get("token", ""))):
+            # Opening the UI once with ?token=… stores a derived value in a cookie and
+            # redirects to the same address without the token.
+            https = scope.get("scheme") == "https" or headers.get("x-forwarded-proto", "").lower() == "https"
+            cookie = (f"{COOKIE_NAME}={cookie_value(self.config)}; Path=/; HttpOnly; SameSite=Strict; "
+                      f"Max-Age=31536000" + ("; Secure" if https else ""))
+            rest = urlencode([(k, v) for k, v in pairs if k != "token"])
+            target = (path.rsplit("/", 1)[-1] or "./") + (f"?{rest}" if rest else "")
+            response = HTMLResponse("", status_code=303,
+                                    headers={"Location": target, "Set-Cookie": cookie, "Cache-Control": "no-store"})
+            return await response(scope, receive, send)
         return await self.app(scope, receive, send)
 
 
@@ -77,10 +81,20 @@ def create_app(
     registry = registry or build_registry(config, store)
     llm = llm or AnthropicLLM(config.anthropic_api_key)
     agent = Agent(config, store, registry, llm)
+    for action in store.recover_interrupted():
+        log.warning("action %s was interrupted by a restart; marked unknown", action["id"])
 
     app = FastAPI(title="Jarvis", docs_url=None, redoc_url=None, openapi_url=None)
     app.state.config, app.state.store, app.state.agent = config, store, agent
     app.add_middleware(AccessMiddleware, config=config)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
+        parts = []
+        for err in exc.errors():
+            loc = ".".join(str(p) for p in err.get("loc", ()) if p != "body")
+            parts.append(f"{loc}: {err.get('msg', 'ungültig')}" if loc else str(err.get("msg", "ungültig")))
+        return JSONResponse({"ok": False, "detail": "Ungültige Anfrage – " + "; ".join(parts)}, status_code=422)
 
     @app.get("/api/health")
     async def health() -> dict:
@@ -101,7 +115,7 @@ def create_app(
             raise HTTPException(status_code=400, detail="Leere Nachricht.")
         channel = req.channel if req.channel in ("web", "phone", "event") else "web"
         return StreamingResponse(
-            _stream(agent, req.conversation_id, text, channel, config),
+            _stream(agent, req.conversation_id, text, channel),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
@@ -114,7 +128,13 @@ def create_app(
     async def conversation(cid: str) -> dict:
         if not store.get_conversation(cid):
             raise HTTPException(status_code=404, detail="Gespräch nicht gefunden.")
-        return {"id": cid, "messages": store.get_messages(cid)}
+        return {"id": cid, "running": agent.is_running(cid), "messages": store.get_messages(cid)}
+
+    @app.post("/api/conversations/{cid}/cancel")
+    async def cancel(cid: str) -> dict:
+        if not store.get_conversation(cid):
+            raise HTTPException(status_code=404, detail="Gespräch nicht gefunden.")
+        return {"ok": True, "was_running": agent.cancel(cid)}
 
     @app.get("/api/pending")
     async def pending() -> list[dict]:
@@ -150,14 +170,18 @@ def create_app(
     return app
 
 
-async def _stream(agent: Agent, cid: str | None, text: str, channel: str, config: Config) -> AsyncIterator[bytes]:
-    """Runs the agent in its own task so a dropped connection does not abort tool work halfway."""
+async def _stream(agent: Agent, cid: str | None, text: str, channel: str) -> AsyncIterator[bytes]:
+    """Runs the agent in its own task. If the client goes away, the run is cancelled at the
+    next safe point (before the next model call or tool), keeping the history valid."""
     queue: asyncio.Queue[Any] = asyncio.Queue()
     sentinel = object()
+    started: dict[str, str] = {}
 
     async def produce() -> None:
         try:
             async for ev in agent.run(cid, text, channel):
+                if ev["type"] == "start":
+                    started["cid"] = ev["data"]["conversation_id"]
                 await queue.put(ev)
         except Exception:  # noqa: BLE001
             log.exception("chat stream failed")
@@ -169,8 +193,14 @@ async def _stream(agent: Agent, cid: str | None, text: str, channel: str, config
     task = asyncio.create_task(produce())
     _BACKGROUND.add(task)
     task.add_done_callback(_BACKGROUND.discard)
-    while True:
-        ev = await queue.get()
-        if ev is sentinel:
-            break
-        yield sse(ev["type"], ev["data"])
+    finished = False
+    try:
+        while True:
+            ev = await queue.get()
+            if ev is sentinel:
+                finished = True
+                break
+            yield sse(ev["type"], ev["data"])
+    finally:
+        if not finished and started.get("cid"):
+            agent.cancel(started["cid"])

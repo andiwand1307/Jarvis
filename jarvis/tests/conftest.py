@@ -39,12 +39,15 @@ class FakeStream:
         return self
 
     async def __aexit__(self, *exc):
+        self.turn["closed"] = True
         return False
 
     def __aiter__(self):
         return self._events()
 
     async def _events(self):
+        if self.turn.get("gate"):
+            await self.turn["gate"].wait()
         if self.turn.get("raise"):
             raise self.turn["raise"]
         for block in self.turn["content"]:
@@ -105,7 +108,7 @@ class Calls:
 def add_test_tools(registry: Registry, calls: Calls) -> None:
     async def handler(inp):
         calls.items.append(inp)
-        return {"done": inp}
+        return {"done": inp, "message": f"Erledigt: {inp['x']}"}
 
     schema = {"type": "object", "properties": {"x": {"type": "string"}}, "required": ["x"],
               "additionalProperties": False}
@@ -131,5 +134,5 @@ def make_client(config: Config, store: Store, calls: Calls):
         if with_test_tools:
             add_test_tools(registry, calls)
         app = create_app(cfg, store=store, llm=llm or FakeLLM(), registry=registry)
-        return TestClient(app, client=(client_host, 50000))
+        return TestClient(app, client=(client_host, 50000), base_url="http://127.0.0.1:8099")
     return factory

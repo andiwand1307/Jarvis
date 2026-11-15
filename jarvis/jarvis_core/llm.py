@@ -29,8 +29,19 @@ class AnthropicLLM:
         return self.client.beta.messages.stream(**params)
 
 
+def api_message(exc: BaseException) -> str:
+    """The API's own error message (from the JSON body), shortened; never the raw dump."""
+    body = getattr(exc, "body", None)
+    msg = ""
+    if isinstance(body, dict):
+        err = body.get("error")
+        msg = err.get("message", "") if isinstance(err, dict) else str(body.get("message", ""))
+    msg = " ".join(str(msg).split())
+    return msg if len(msg) <= 200 else msg[:199] + "…"
+
+
 def describe_error(exc: BaseException) -> str:
-    """German, user-facing description of an SDK error (no secrets)."""
+    """German, user-facing description of an SDK error (no secrets, no raw payloads)."""
     if isinstance(exc, anthropic.AuthenticationError):
         return "Claude lehnt den Zugang ab. Bitte den API-Schlüssel prüfen."
     if isinstance(exc, anthropic.PermissionDeniedError):
@@ -40,11 +51,20 @@ def describe_error(exc: BaseException) -> str:
     if isinstance(exc, anthropic.RateLimitError):
         return "Claude ist gerade ausgelastet (Ratenlimit). Bitte gleich noch einmal versuchen."
     if isinstance(exc, anthropic.BadRequestError):
-        return f"Claude hat die Anfrage abgelehnt: {getattr(exc, 'message', exc)}"
+        detail = api_message(exc)
+        low = detail.lower()
+        if "thinking" in low or "signature" in low or "bound to a different conversation" in low:
+            return ("Dieses Gespräch lässt sich nach einer Änderung der Einstellungen nicht fortsetzen. "
+                    "Bitte ein neues Gespräch beginnen.")
+        if "prompt is too long" in low or "too many tokens" in low or "context" in low and "limit" in low:
+            return "Das Gespräch ist zu lang geworden. Bitte ein neues Gespräch beginnen."
+        return "Claude hat die Anfrage als ungültig abgelehnt" + (f" ({detail})." if detail else ".")
     if isinstance(exc, anthropic.APIStatusError):
-        if exc.status_code >= 500:
-            return f"Claude ist gerade nicht verfügbar (Fehler {exc.status_code}). Bitte später erneut versuchen."
-        return f"Fehler von Claude ({exc.status_code}): {getattr(exc, 'message', exc)}"
+        if exc.status_code == 529 or exc.status_code >= 500:
+            return "Claude ist gerade überlastet oder nicht verfügbar. Bitte gleich noch einmal versuchen."
+        return f"Fehler von Claude (Status {exc.status_code})."
+    if isinstance(exc, anthropic.APITimeoutError):
+        return "Claude hat nicht rechtzeitig geantwortet. Bitte noch einmal versuchen."
     if isinstance(exc, anthropic.APIConnectionError):
         return "Keine Verbindung zu Claude. Bitte Netzwerk prüfen."
     if isinstance(exc, TypeError) and "authentication" in str(exc).lower():
@@ -52,5 +72,5 @@ def describe_error(exc: BaseException) -> str:
         return ("Kein Claude-Zugang eingerichtet. Bitte ANTHROPIC_API_KEY setzen "
                 "(im Add-on: Option anthropic_api_key).")
     if isinstance(exc, anthropic.AnthropicError):
-        return f"Claude ist nicht eingerichtet oder nicht erreichbar: {exc}"
-    return f"Unerwarteter Fehler: {type(exc).__name__}"
+        return "Claude ist nicht eingerichtet oder nicht erreichbar."
+    return f"Unerwarteter Fehler ({type(exc).__name__})."

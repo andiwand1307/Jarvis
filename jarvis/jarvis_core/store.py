@@ -122,7 +122,7 @@ class Store:
 
     def list_conversations(self, limit: int = 100) -> list[dict]:
         rows = self._all(
-            "SELECT id, title, updated_at FROM conversations ORDER BY updated_at DESC LIMIT ?",
+            "SELECT id, title, updated_at FROM conversations ORDER BY updated_at DESC, rowid DESC LIMIT ?",
             (limit,),
         )
         return [dict(r) for r in rows]
@@ -233,6 +233,17 @@ class Store:
             (status, result, now_iso(), pid),
         )
 
+    def recover_interrupted(self) -> list[dict]:
+        """Actions left in `executing` by a crash: mark them `unknown`, never retry."""
+        rows = self._all("SELECT * FROM pending_actions WHERE status = 'executing'")
+        for r in rows:
+            self.finish_pending(r["id"], "unknown",
+                                "Ausführung durch Neustart unterbrochen; Ergebnis unbekannt. Wird nicht wiederholt.")
+            self.log(tool=r["tool"], risk="confirm", tool_input=json.loads(r["input"]),
+                     result="durch Neustart unterbrochen, Ergebnis unbekannt", status="interrupted",
+                     conversation_id=r["conversation_id"])
+        return [dict(r) for r in rows]
+
     def take_unreported(self, cid: str) -> list[dict]:
         """Resolved actions of a conversation the model has not been told about yet."""
         with self._lock:
@@ -300,6 +311,9 @@ class Store:
             return hits[:limit]
         rows = self._all("SELECT id, text, created_at FROM memory ORDER BY id DESC LIMIT ?", (limit,))
         return [dict(r) for r in rows]
+
+    def count_notes(self) -> int:
+        return int(self._one("SELECT COUNT(*) FROM memory")[0])
 
     def delete_note(self, note_id: int) -> bool:
         cur = self._exec("DELETE FROM memory WHERE id = ?", (note_id,))

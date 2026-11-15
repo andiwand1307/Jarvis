@@ -22,6 +22,7 @@ OPTION_ENV = {
     "mail_password": "MAIL_PASSWORD",
     "mail_from": "MAIL_FROM",
     "mail_drafts_folder": "MAIL_DRAFTS_FOLDER",
+    "ha_trusted_entities": "HA_TRUSTED_ENTITIES",
 }
 
 
@@ -29,6 +30,8 @@ def export_lines(options: dict) -> list[str]:
     lines = []
     for key, env in OPTION_ENV.items():
         value = options.get(key)
+        if isinstance(value, list):
+            value = ",".join(str(v).strip() for v in value if str(v).strip())
         if value is None or value == "":
             continue
         if isinstance(value, bool):

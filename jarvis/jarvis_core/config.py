@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -54,6 +55,7 @@ class MailConfig:
 class HAConfig:
     base_url: str = ""  # ends with /api
     token: str = ""
+    trusted_entities: tuple[str, ...] = ()  # scenes/scripts that may run without approval
 
     @property
     def configured(self) -> bool:
@@ -117,6 +119,9 @@ class Config:
             if url and not url.endswith("/api"):
                 url = url + "/api"
             ha = HAConfig(base_url=url, token=_env(env, "HA_TOKEN"))
+        ha.trusted_entities = tuple(
+            e.strip().lower() for e in re.split(r"[,\s]+", _env(env, "HA_TRUSTED_ENTITIES")) if e.strip()
+        )
 
         user = _env(env, "MAIL_USER")
         mail = MailConfig(

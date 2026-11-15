@@ -5,13 +5,20 @@ from __future__ import annotations
 from ..store import Store
 from .base import READ, WRITE, Registry, Tool, ToolError
 
+MAX_NOTE_CHARS = 500
+MAX_NOTES = 200
+
 
 def register(registry: Registry, store: Store) -> None:
     async def save(inp: dict) -> dict:
         text = inp["text"].strip()
         if not text:
             raise ToolError("Leere Notiz.")
-        return {"id": store.add_note(text), "saved": text}
+        if len(text) > MAX_NOTE_CHARS:
+            raise ToolError(f"Notiz zu lang (max. {MAX_NOTE_CHARS} Zeichen). Bitte kürzer fassen.")
+        if store.count_notes() >= MAX_NOTES:
+            raise ToolError(f"Es sind schon {MAX_NOTES} Notizen gespeichert. Erst veraltete löschen.")
+        return {"id": store.add_note(text), "saved": text, "message": "Notiz gespeichert."}
 
     async def search(inp: dict) -> dict:
         notes = store.search_notes(inp.get("query", ""), limit=int(inp.get("limit", 30)))
@@ -32,7 +39,8 @@ def register(registry: Registry, store: Store) -> None:
         ),
         input_schema={
             "type": "object",
-            "properties": {"text": {"type": "string", "description": "Die Notiz als ganzer Satz."}},
+            "properties": {"text": {"type": "string", "maxLength": MAX_NOTE_CHARS,
+                                    "description": "Die Notiz als ganzer Satz."}},
             "required": ["text"],
             "additionalProperties": False,
         },

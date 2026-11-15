@@ -2,7 +2,7 @@
 
 import json
 
-from jarvis_core.agent import FALLBACK_BETA, history_content
+from jarvis_core.agent import BINDING_BETA, FALLBACK_BETA, history_content
 from jarvis_core.config import Config
 
 from .conftest import FakeLLM, parse_sse, text_turn, tool_turn
@@ -59,9 +59,9 @@ def test_request_parameters(make_client):
     chat(c, "Hallo")
     p = llm.calls[0]
     assert p["model"] == "claude-opus-5-5"
-    assert p["thinking"] == {"type": "adaptive"}
+    assert p["thinking"] == {"type": "adaptive", "block_binding": {"prefix_mismatch_behavior": "drop_block"}}
     assert p["output_config"] == {"effort": "medium"}
-    assert p["betas"] == [FALLBACK_BETA] and p["fallbacks"] == "default"
+    assert set(p["betas"]) == {FALLBACK_BETA, BINDING_BETA} and p["fallbacks"] == "default"
     assert "tool_choice" not in p
     assert p["system"][-1]["cache_control"] == {"type": "ephemeral"}
     assert p["cache_control"] == {"type": "ephemeral"}
@@ -127,7 +127,7 @@ def test_tool_and_pending_events(make_client, calls):
     resp = c.post(f"api/pending/{pending['id']}/approve")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["ok"] is True and json.loads(body["result"]) == {"done": {"x": "2"}}
+    assert body["ok"] is True and body["result"] == "Erledigt: 2"
     assert calls.items == [{"x": "1"}, {"x": "2"}]
     assert c.post(f"api/pending/{pending['id']}/approve").status_code == 404
     assert c.get("api/pending").json() == []
@@ -228,6 +228,6 @@ def test_static_files_served(store, tmp_path, calls):
     web.mkdir()
     (web / "index.html").write_text("<h1>UI</h1>", encoding="utf-8")
     cfg = Config.from_env({"JARVIS_DATA_DIR": str(tmp_path), "JARVIS_WEB_DIR": str(web)})
-    c = TestClient(create_app(cfg, store=store, llm=FakeLLM()), client=("127.0.0.1", 1))
+    c = TestClient(create_app(cfg, store=store, llm=FakeLLM()), client=("127.0.0.1", 1), base_url="http://localhost")
     assert c.get("/").text == "<h1>UI</h1>"
     assert c.get("api/health").json() == {"ok": True}
