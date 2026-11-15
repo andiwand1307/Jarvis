@@ -12,7 +12,6 @@ Cloud-Diensten; der Dienst selbst braucht kaum Rechenleistung.
 Etappen:
 1. **Kern** – Agent mit Werkzeugen, Web-Oberfläche (dieser Stand).
 2. **Telefonie** – Jarvis ist anrufbar und ruft an (Fritzbox-SIP oder Telefonie-Anbieter).
-3. **Zuhause** – Auslöser aus Home Assistant (z. B. Begrüßung an der Tür).
 
 ## 2. Verzeichnisstruktur
 
