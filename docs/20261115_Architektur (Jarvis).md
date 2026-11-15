@@ -92,6 +92,21 @@ Alle Pfade relativ (Ingress setzt ein Präfix davor). JSON, UTF-8.
 | POST | `api/pending/{id}/reject` | verwirft; `{ok}` |
 | GET | `api/log?limit=50` | Protokoll |
 
+Ergänzungen (abwärtskompatibel, vom Backend nachgetragen):
+- `api/status` enthält zusätzlich `"api_key_configured": bool` (Claude-Schlüssel vorhanden).
+- `api/chat` akzeptiert optional `"channel": "web"|"phone"|"event"` (Standard `web`).
+- Fehler: unbekanntes Gespräch → 404, unbekannte/erledigte offene Aktion bei approve/reject → 404
+  (`{"ok": false, ...}`), leere Nachricht → 400. Ist das Gespräch in `api/chat` unbekannt, kommen
+  nur `error` und `done` (kein `start`).
+- `api/log`-Einträge: `{id, created_at, conversation_id, tool, risk, input, result, status}`,
+  neueste zuerst; `status` ∈ `ok`, `error`, `invalid`, `pending`, `approved`, `approved_failed`, `rejected`.
+- Token-Modus (außerhalb des Add-ons mit `JARVIS_TOKEN`): `api/*` braucht `Authorization: Bearer
+  <token>`; alternativ `?token=<token>` oder das Cookie `jarvis_token`. Wer die Oberfläche einmal mit
+  `/?token=<token>` öffnet, bekommt das Cookie gesetzt, danach funktionieren die API-Aufrufe der
+  Oberfläche ohne Änderung. `api/health` und die statischen Dateien sind ohne Token erreichbar.
+- Ergebnisse freigegebener oder verworfener Aktionen erfährt das Modell beim nächsten Beitrag im
+  selben Gespräch (Kontextblock); sie erscheinen nicht als eigene Nachricht in `messages`.
+
 ### SSE-Ereignisse von `api/chat`
 
 Jede Zeile `event: <typ>` + `data: <json>`.
@@ -111,3 +126,26 @@ Eine Seite, deutsch, für Handy und Rechner. Gespräch mit Live-Text, sichtbare 
 Freigabekarten für offene Aktionen (Details ansehen, freigeben, verwerfen), Statusanzeige der
 eingerichteten Bereiche. Keine Schrift kleiner als 12 pt (16 px). Kein Build-Schritt, keine
 externen Abhängigkeiten zur Laufzeit.
+
+## 7. Konfiguration (Backend)
+
+Umgebungsvariablen; im Add-on setzt `run.sh` sie aus `/data/options.json` (Optionsname in Klammern).
+
+| Variable | Bedeutung | Standard |
+|---|---|---|
+| `ANTHROPIC_API_KEY` (`anthropic_api_key`) | Claude-Zugang | – |
+| `JARVIS_MODEL` (`model`) | Modell | `claude-opus-5-5` |
+| `JARVIS_EFFORT` (`effort`) | `low`…`max` | `medium` |
+| `JARVIS_USER_NAME` (`user_name`) | Name des Nutzers für den Systemprompt | – |
+| `JARVIS_WEB_SEARCH` (`web_search`) | Websuche an/aus | `true` |
+| `JARVIS_MAX_TOKENS`, `JARVIS_MAX_STEPS` | Ausgabegrenze je Antwort, Werkzeugrunden je Anfrage | `32000`, `12` |
+| `JARVIS_FALLBACKS` | Server-Fallback bei Ablehnung (`fallbacks: "default"`) | `true` |
+| `JARVIS_TIMEZONE` | Zeitzone | `Europe/Berlin` |
+| `JARVIS_DATA_DIR`, `JARVIS_WEB_DIR` | SQLite-Ordner, Oberfläche | `data` (Add-on `/data`), `jarvis/web` |
+| `JARVIS_HOST`, `JARVIS_PORT` | Bindung (ohne Token immer 127.0.0.1) | `0.0.0.0`, `8099` |
+| `JARVIS_TOKEN` | Bearer-Token außerhalb des Add-ons | – |
+| `TODOIST_API_TOKEN` (`todoist_api_token`) | Todoist (API v1) | – |
+| `MAIL_IMAP_HOST`/`_PORT`, `MAIL_SMTP_HOST`/`_PORT`, `MAIL_SMTP_SECURITY` (`ssl`/`starttls`), `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_FROM`, `MAIL_DRAFTS_FOLDER` (`mail_*`) | Mail; Senden nur mit SMTP-Host | Ports 993/465 |
+| `HA_URL`, `HA_TOKEN` | Home Assistant außerhalb des Add-ons (im Add-on `SUPERVISOR_TOKEN` automatisch) | – |
+
+Start lokal: `cd jarvis && pip install -e .[test] && python -m jarvis_core`; Tests: `pytest`.
