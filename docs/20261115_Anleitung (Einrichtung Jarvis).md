@@ -34,6 +34,8 @@ Für Weg (a), sobald er umgesetzt ist: Einstellungen → Add-ons → Add-on Stor
 
 ## 3. Add-on installieren und einrichten
 
+Zieh vor dem ersten Einbau ein vollständiges Backup in Home Assistant (ungefähr hier: Einstellungen → System → Backups).
+
 1. Öffne Jarvis unter „Lokale Add-ons“ (Weg b) oder im Store (Weg a) und wähle „Installieren“. Die Installation baut das Image auf dem Server und dauert eine Weile.
 2. Öffne den Tab „Konfiguration“ und trage die Optionen ein (Tabelle unten).
 3. Speichere. Wähle dann „Starten“. Die Option „Start beim Hochfahren“ ist vorgegeben eingeschaltet.
@@ -56,7 +58,8 @@ Für Weg (a), sobald er umgesetzt ist: Einstellungen → Add-ons → Add-on Stor
 | `mail_user` | Anmeldename, meist die Postfach-Adresse | nein |
 | `mail_password` | App-Passwort, nicht das normale Kennwort | nein |
 | `mail_from` | Absenderadresse. Leer heißt: Anmeldename wird verwendet | nein |
-| `mail_drafts_folder` | Name des Entwurfsordners im Postfach. Ob leer ein sinnvoller Standard gilt, habe ich nicht geprüft | nein |
+| `mail_drafts_folder` | Name des Entwurfsordners. Leer heißt: Jarvis sucht den Ordner selbst im Postfach | nein |
+| `ha_trusted_entities` | Erlaubnisliste: Szenen, Skripte und Schalter, die Jarvis ohne Freigabe schalten darf, z. B. `scene.abend`. Vorgabe leer | nein |
 
 Zum Mail-Lesen brauchst du `mail_imap_host`, `mail_user` und `mail_password` zusammen. Änderst du Optionen später, startest du das Add-on neu.
 
@@ -82,7 +85,9 @@ Jedes Werkzeug hat eine Risikostufe.
 | `confirm` | wirkt nach außen oder ist heikel | Mail senden, Schloss, Alarm, Garagentor | wird als offene Aktion gespeichert und läuft erst nach Freigabe |
 
 - Freigegeben oder verworfen wird nur über die Freigabekarte in der Oberfläche. Das Modell kann nicht selbst freigeben.
-- Bei Home Assistant gilt: Schlösser, Alarmanlagen, Rollläden und Garagentore (`cover`), Sirenen, Ventile und unbekannte Dienste sind `confirm`. Licht, Schalter, Mediaplayer, Szenen, Skripte und Klima sind `write`.
+- Bei Home Assistant gilt eine Positivliste: Ohne Freigabe laufen nur die Standarddienste von Licht, Lüfter und Heizung sowie Wiedergabesteuerung und Lautstärke der Mediaplayer. Alles andere braucht deine Freigabe, auch Schalter, Szenen, Skripte, Rollläden, Alarmanlage und das Abspielen von Inhalten.
+- Szenen, Skripte und Schalter, denen du vertraust, trägst du in `ha_trusted_entities` ein. Dann laufen sie ohne Freigabe.
+- Meldet eine Freigabe „Ergebnis unbekannt“, sieh erst nach, ob die Aktion durchging, bevor du sie wiederholst.
 - Inhalte aus Mails und Webseiten sind Daten, keine Anweisungen. Verlass dich trotzdem nicht darauf. Die Freigabe ist die eigentliche Absicherung.
 - Jeder Werkzeugaufruf landet im Protokoll von Jarvis.
 
