@@ -267,3 +267,22 @@ dialog[open] { display: flex; flex-direction: column; }
 
 /* Freigabe-Knöpfe bleiben beim Lesen langer Details im Blick */
 .card .actions { position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 2px; margin-bottom: -2px; border-top: 1px solid var(--line); z-index: 1; }
+
+.limit-hint { max-width: 780px; margin: 6px auto 0; color: var(--ink-soft); padding: 0 8px; }
+.limit-hint.bad { color: var(--danger); font-weight: 600; }
+.card .age { color: var(--ink-soft); margin-top: -6px; }
+.card.unknown { border-left-color: var(--amber); border-style: dashed; border-left-style: solid; background: var(--amber-soft); }
+.card.unknown .kind { color: var(--amber); }
+.card.unknown .kind::before { content: "? "; }
+.card.unknown .result { background: var(--surface); color: var(--ink); border: 2px solid var(--amber); }
+.card .dismiss { align-self: flex-start; }
+.card.failed .kind::before { content: "✕ "; }
+.card.approved .kind::before { content: "✓ "; }
+.notice-box.info { background: var(--surface); color: var(--ink-soft); border-color: var(--line); font-weight: 400; }
+.notice-box.warn { background: var(--amber-soft); color: var(--ink); border-color: var(--amber); }
+.badge.good { background: var(--ok-soft); color: var(--ok); }
+.badge.warn { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber); }
+.log li.st-bad { border-left: 5px solid var(--danger); }
+.log li.st-warn { border-left: 5px solid var(--amber); background: var(--amber-soft); }
+.pending-box { scroll-margin-top: 12px; }
+.card { scroll-margin-top: 12px; }
