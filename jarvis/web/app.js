@@ -28,10 +28,12 @@
     rejected: { label: 'Verworfen', cls: 'off', sym: '–' },
     pending: { label: 'Wartet auf Freigabe', cls: 'off', sym: '…' },
     cancelled: { label: 'Abgebrochen', cls: 'off', sym: '■' },
+    interrupted: { label: 'Unterbrochen (Neustart)', cls: 'warn', sym: '!' },
     error: { label: 'Fehler', cls: 'bad', sym: '✕' },
     invalid: { label: 'Ungültige Eingabe', cls: 'bad', sym: '✕' },
+    timeout: { label: 'Zeitüberschreitung', cls: 'bad', sym: '✕' },
     approved_failed: { label: 'Freigegeben, fehlgeschlagen', cls: 'bad', sym: '✕' },
-    unknown: { label: 'Unbekannt', cls: 'warn', sym: '!' },
+    approved_unknown: { label: 'Freigegeben, Ergebnis unbekannt', cls: 'warn', sym: '!' },
   };
   const RISK_LABELS = { read: 'lesend', write: 'schreibend', confirm: 'mit Freigabe' };
   const LONG_FIELDS = new Set(['body', 'text', 'message']);
@@ -44,7 +46,10 @@
     areasConfigured: null,
     keyMissing: false,
     notice: null,
-    userStopped: false,
+    run: null,
+    runningIds: new Set(),
+    pollTimer: 0,
+    syncSeq: 0,
     tooLong: false,
   };
 
@@ -59,19 +64,12 @@
         const j = await res.json();
         if (j) {
           const d = j.detail != null ? j.detail : (j.message || j.error);
-          if (Array.isArray(d)) {
-            msg = d.map((x) => {
-              if (typeof x === 'string') return x;
-              const loc = Array.isArray(x.loc) ? x.loc.filter((p) => p !== 'body').join('.') : '';
-              const m = String(x.msg || '');
-              if (x.type === 'string_too_long') return 'Die Nachricht ist zu lang (höchstens ' + MAX_LEN.toLocaleString('de-DE') + ' Zeichen).';
-              return loc ? loc + ': ' + m : m;
-            }).filter(Boolean).join(' ') || msg;
-          } else if (d != null && typeof d === 'object') msg = stringify(d);
-          else if (d != null) msg = String(d);
+          if (typeof d === 'string') msg = d;
+          else if (Array.isArray(d)) msg = d.map((x) => (x && x.msg) || '').filter(Boolean).join(' ') || msg;
         }
       } catch (_) { /* ignore */ }
-      if (res.status === 401 || res.status === 403) msg = 'Nicht angemeldet oder keine Berechtigung.';
+      if (res.status === 401) msg = 'Kein Zugang. Öffne Jarvis über den Eintrag in der Home-Assistant-Seitenleiste (Ingress) oder über den Link mit Zugangsschlüssel.';
+      else if (res.status === 403) msg = 'Zugriff verweigert.';
       const e = new Error(msg); e.status = res.status; throw e;
     }
     return res.json();
@@ -222,7 +220,7 @@
     box.appendChild(el('span', null, message));
     if (retryText) {
       const b = el('button', 'btn small', 'Erneut senden'); b.type = 'button';
-      b.addEventListener('click', () => { box.remove(); send(retryText, true); });
+      b.addEventListener('click', () => { if (state.conversationId !== retryText.cid) return; box.remove(); send(retryText.text, { retry: true, cid: retryText.cid }); });
       box.appendChild(b);
     }
     m.appendChild(box);
@@ -239,6 +237,14 @@
     sendBtn.classList.toggle('stop', busy);
     const svg = $('sendIcon'); svg.firstElementChild.setAttribute('d', busy ? 'M7 7h10v10H7z' : 'M12 19V5M5.5 11.5L12 5l6.5 6.5');
     updateSend();
+  }
+  let hintTimer = 0;
+  function busyHint() {
+    const h = $('busyHint'); h.hidden = false; h.textContent = 'Jarvis antwortet noch. Mit dem Stopp-Knopf kannst du abbrechen.';
+    clearTimeout(hintTimer); hintTimer = setTimeout(() => { h.hidden = true; }, 3500);
+  }
+  function rememberConversation() {
+    try { if (state.conversationId) sessionStorage.setItem('jarvis.cid', state.conversationId); else sessionStorage.removeItem('jarvis.cid'); } catch (_) { /* ignore */ }
   }
 
   async function* sseEvents(stream) {
@@ -262,8 +268,9 @@
     }
   }
 
-  /* Gespräch vom Server anzeigen (Wahrheit liegt im Backend, nicht im Stream). */
+  /* Gespräch vom Server anzeigen (die Wahrheit liegt im Backend, nicht im Stream). */
   function clearNotice() { if (state.notice) { state.notice.remove(); state.notice = null; } }
+  function stopPolling() { clearTimeout(state.pollTimer); state.pollTimer = 0; state.syncSeq++; }
   function renderConversation(c) {
     clearNotice();
     messagesEl.textContent = '';
@@ -289,73 +296,118 @@
     try { return await jsonOrThrow(await api('api/conversations/' + encodeURIComponent(cid) + '/cancel', { method: 'POST' })); }
     catch (e) { return { error: netMessage(e) }; }
   }
-  // Lädt das Gespräch neu und zeigt den echten Stand. opts.sent: gesendeter Text (für die Prüfung, ob er ankam).
-  async function syncConversation(opts) {
+  async function stopAndSync(cid) { await cancelConversation(cid); await syncConversation(cid, { stopped: true }); }
+
+  // Lädt Gespräch `cid` und zeigt den echten Stand. Läuft es noch, wird alle 2 s nachgeladen, bis es fertig ist.
+  // Wirkt nur, solange `cid` das angezeigte Gespräch ist und kein neuerer Abgleich gestartet wurde.
+  // opts.sent: gesendeter Text (Prüfung, ob er ankam); opts.stopped / opts.busy: Texte.
+  async function syncConversation(cid, opts) {
     opts = opts || {};
-    const cid = state.conversationId;
+    clearTimeout(state.pollTimer);
+    const token = opts.token || ++state.syncSeq;
+    const alive = () => state.syncSeq === token && state.conversationId === cid;
     if (!cid) {
+      if (state.conversationId) return null;
       addNotice('warn', 'Die Verbindung brach ab, bevor Jarvis geantwortet hat. Ob die Nachricht angekommen ist, ist unklar. Sieh in der Gesprächsliste nach, bevor du sie erneut sendest.',
         [['Gesprächsliste aktualisieren', loadConversations]]);
       return null;
     }
+    const stick = !opts.token || nearBottom();
     let c;
     try { c = await jsonOrThrow(await api('api/conversations/' + encodeURIComponent(cid))); }
     catch (e) {
-      addNotice('warn', 'Der Stand konnte nicht geladen werden: ' + netMessage(e),
-        [['Stand aktualisieren', () => syncConversation(opts)]]);
+      if (e.status === 404 && alive()) { state.conversationId = null; rememberConversation(); messagesEl.textContent = ''; updateEmpty(); return null; }
+      if (alive()) addNotice('warn', 'Der Stand konnte nicht geladen werden: ' + netMessage(e),
+        [['Stand aktualisieren', () => syncConversation(cid, opts)]]);
       return null;
     }
+    if (!alive()) return null;
     renderConversation(c);
     const msgs = c.messages || [];
     const lastUser = [...msgs].reverse().find((m) => m.role === 'user');
-    const arrived = !opts.sent || (lastUser && lastUser.text.trim() === opts.sent.trim());
+    const arrived = !opts.sent || !!(lastUser && lastUser.text.trim() === opts.sent.trim());
     if (c.running) {
-      addNotice('warn', 'Jarvis arbeitet noch an dieser Anfrage.', [
-        ['Stand aktualisieren', () => syncConversation(opts)],
-        ['Stoppen', async () => { await cancelConversation(cid); await syncConversation({ stopped: true }); }, 'danger'],
+      state.runningIds.add(cid);
+      const text = opts.busy ? 'In diesem Gespräch läuft gerade schon eine Anfrage.'
+        : opts.stopped ? 'Wird angehalten. Ein laufendes Werkzeug wird noch beendet.' : 'Jarvis arbeitet noch an dieser Anfrage.';
+      addNotice('warn', text, [
+        ['Stand aktualisieren', () => syncConversation(cid, opts)],
+        ['Stoppen', () => stopAndSync(cid), 'danger'],
       ]);
-    } else if (opts.stopped) {
-      addNotice('info', 'Angehalten. Das ist der tatsächliche Stand.');
-    } else if (!arrived) {
-      addNotice('warn', 'Die Nachricht ist nicht angekommen.', [['Erneut senden', () => { clearNotice(); send(opts.sent, true); }]]);
+      state.pollTimer = setTimeout(() => { if (alive()) syncConversation(cid, Object.assign({}, opts, { token })); }, 2000);
+    } else {
+      state.runningIds.delete(cid);
+      if (opts.stopped) addNotice('info', 'Angehalten. Das ist der tatsächliche Stand.');
+      else if (!arrived) {
+        addNotice('warn', opts.busy ? 'Die vorherige Anfrage ist fertig. Deine Nachricht wurde nicht verarbeitet.' : 'Die Nachricht ist nicht angekommen.',
+          [['Erneut senden', () => { if (state.conversationId === cid) { clearNotice(); send(opts.sent, { retry: true, cid }); } }]]);
+      }
     }
-    toBottom(true); loadConversations(); loadPending();
+    if (stick) toBottom(true);
+    loadConversations(); loadPending();
     return c;
   }
+  // Ein vom Bildschirm gelöster Lauf läuft serverseitig weiter; im Hintergrund nur das Kennzeichen „läuft“ pflegen.
+  function watchBackground(cid, n) {
+    n = n || 0;
+    if (!cid || n > 300) return;
+    setTimeout(async () => {
+      try {
+        const c = await jsonOrThrow(await api('api/conversations/' + encodeURIComponent(cid)));
+        if (c.running) { state.runningIds.add(cid); watchBackground(cid, n + 1); return; }
+      } catch (_) { watchBackground(cid, n + 1); return; }
+      state.runningIds.delete(cid); loadConversations();
+    }, 2000);
+  }
+  function detachRun() {
+    const run = state.run;
+    if (!run) return;
+    run.detached = true; state.run = null;
+    try { run.ctrl.abort(); } catch (_) { /* ignore */ }
+    setBusy(false);
+    if (run.cid) { state.runningIds.add(run.cid); watchBackground(run.cid); }
+  }
   async function stopRun() {
-    const cid = state.conversationId;
-    state.userStopped = true;
-    if (cid) await cancelConversation(cid);
-    if (state.controller) state.controller.abort();
+    const run = state.run; if (!run) return;
+    run.userStopped = true;
+    if (run.cid) await cancelConversation(run.cid);
+    run.ctrl.abort();
   }
 
-  async function send(text, isRetry) {
+  async function send(text, o) {
+    o = o || {};
     text = text.trim();
     if (!text || state.streaming) return;
     if ([...text].length > MAX_LEN) return;
+    stopPolling();
     setBanner(null); if (state.keyMissing) setBanner(KEY_BANNER);
     clearNotice();
-    if (!isRetry) addUser(text, new Date());
+    if (!o.retry) addUser(text, new Date());
     const m = addAssistant('', null);
     m.classList.add('streaming');
     toBottom(true);
+    const ctrl = new AbortController();
+    const run = { cid: o.retry ? o.cid : state.conversationId, ctrl, userStopped: false, detached: false };
+    state.run = run;
     setBusy(true);
-    state.userStopped = false;
-    const ctrl = new AbortController(); state.controller = ctrl;
+    const live = () => state.run === run;
     let acc = '', raf = 0, gotDone = false, gotError = false, connected = false, busyMsg = false;
-    const paint = () => { raf = 0; const stick = nearBottom(); renderMarkdown(acc, m._body); if (stick) toBottom(true); };
-    let after = null; // wird nach dem Aufräumen ausgeführt
+    const paint = () => { raf = 0; if (!live()) return; const stick = nearBottom(); renderMarkdown(acc, m._body); if (stick) toBottom(true); };
+    let after = null;
     try {
       const res = await fetch('api/chat', {
         method: 'POST', signal: ctrl.signal, cache: 'no-store',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-        body: JSON.stringify(state.conversationId ? { message: text, conversation_id: state.conversationId } : { message: text }),
+        body: JSON.stringify(run.cid ? { message: text, conversation_id: run.cid } : { message: text }),
       });
       if (!res.ok || !res.body) { await jsonOrThrow(res); throw new Error('Leere Antwort'); }
       connected = true;
       for await (const ev of sseEvents(res.body)) {
+        if (!live()) break;
         const d = ev.data || {};
-        if (ev.type === 'start') { state.conversationId = d.conversation_id || state.conversationId; }
+        if (ev.type === 'start') {
+          run.cid = d.conversation_id || run.cid; state.conversationId = run.cid; state.runningIds.add(run.cid); rememberConversation();
+        }
         else if (ev.type === 'text') { acc += d.delta || ''; if (!raf) raf = requestAnimationFrame(paint); }
         else if (ev.type === 'tool') { setTool(m, d); toBottom(); }
         else if (ev.type === 'pending') { upsertPending(d, true); }
@@ -367,31 +419,50 @@
         }
         else if (ev.type === 'done') { gotDone = true; }
       }
-      if (busyMsg) { m.remove(); after = () => { addNotice('warn', 'In diesem Gespräch läuft gerade schon eine Anfrage.', [
-        ['Stand aktualisieren', () => syncConversation({})],
-        ['Stoppen', async () => { await cancelConversation(state.conversationId); await syncConversation({ stopped: true }); }, 'danger']]); }; }
-      else if (!gotDone && !gotError) { const st = state.userStopped; after = () => syncConversation(st ? { stopped: true } : { sent: text }); }
+      if (!live()) { /* gelöst: nichts mehr anzeigen */ }
+      else if (busyMsg) after = () => syncConversation(run.cid, { sent: text, busy: true });
+      else if (!gotDone && !gotError) { const st = run.userStopped; after = () => syncConversation(run.cid, st ? { stopped: true } : { sent: text }); }
+      else if (gotDone && run.cid) state.runningIds.delete(run.cid);
     } catch (e) {
-      if (e.name === 'AbortError' && state.userStopped) after = () => syncConversation({ stopped: true });
+      if (!live()) { /* gelöst */ }
+      else if (e.name === 'AbortError' && run.userStopped) after = () => syncConversation(run.cid, { stopped: true });
       else if (e.status) showError(m, netMessage(e), null);
-      else if (connected || state.conversationId) after = () => syncConversation({ sent: text });
-      else { showError(m, netMessage(e), text); setBanner('Jarvis ist nicht erreichbar.'); }
+      else if (connected || run.cid) after = () => syncConversation(run.cid, { sent: text });
+      else { showError(m, netMessage(e), text ? { text, cid: run.cid } : null); setBanner('Jarvis ist nicht erreichbar.'); }
     } finally {
       if (raf) cancelAnimationFrame(raf);
-      if (acc) renderMarkdown(acc, m._body);
-      m._text = acc;
-      m.classList.remove('streaming');
-      if (!after && !acc && !m._tools.children.length && !m.querySelector('.errbox')) m._body.appendChild(el('p', 'muted', 'Keine Antwort erhalten.'));
-      for (const c of m._chips || []) if (c.classList.contains('running')) { c.className = 'chip error'; }
-      setBusy(false); state.controller = null;
-      if (after) { await after(); }
-      toBottom();
+      if (live()) {
+        if (acc) renderMarkdown(acc, m._body);
+        m._text = acc;
+        m.classList.remove('streaming');
+        if (!after && !acc && !m._tools.children.length && !m.querySelector('.errbox')) m._body.appendChild(el('p', 'muted', 'Keine Antwort erhalten.'));
+        for (const c of m._chips || []) if (c.classList.contains('running')) { c.className = 'chip error'; }
+        state.run = null; setBusy(false);
+        if (after) await after();
+        toBottom();
+        input.focus();
+      }
       loadConversations();
-      input.focus();
     }
   }
 
   /* ---------- Freigaben ---------- */
+  // Verschachtelte Werte lesbar einrückt darstellen, nie als eine JSON-Zeile.
+  function fmtValue(v, depth) {
+    if (v == null) return '';
+    if (typeof v !== 'object') return String(v);
+    const pad = '  '.repeat(depth);
+    if (Array.isArray(v)) {
+      if (v.every((x) => x === null || typeof x !== 'object')) return v.join(', ');
+      return v.map((x) => pad + '- ' + fmtValue(x, depth + 1).replace(/^\s+/, '')).join('\n');
+    }
+    return Object.entries(v).map(([k, x]) => {
+      if (x != null && typeof x === 'object' && !(Array.isArray(x) && x.every((y) => y === null || typeof y !== 'object'))) {
+        return pad + k + ':\n' + fmtValue(x, depth + 1);
+      }
+      return pad + k + ': ' + fmtValue(x, depth + 1);
+    }).join('\n');
+  }
   function renderFields(details) {
     const wrap = el('dl', 'fields');
     let entries = [];
@@ -401,7 +472,8 @@
     for (const [k, v] of entries) {
       const f = el('div', 'field' + (LONG_FIELDS.has(k) ? ' body' : ''));
       f.appendChild(el('dt', null, FIELD_LABELS[k] || k));
-      f.appendChild(el('dd', null, stringify(v)));
+      const structured = v != null && typeof v === 'object' && !(Array.isArray(v) && v.every((x) => x === null || typeof x !== 'object'));
+      f.appendChild(el('dd', structured ? 'struct' : null, fmtValue(v, 0)));
       wrap.appendChild(f);
     }
     return wrap;
@@ -422,7 +494,6 @@
     if (kind === 'ha_service') return 'Prüfe Dienst und Ziel. Die Aktion wirkt sofort im Haus.';
     return 'Erst nach Freigabe wird etwas ausgeführt. Prüfe die Details.';
   }
-  function isUnknownOutcome(j) { return j && (j.status === 'unknown' || j.unknown === true || j.ok === null); }
 
   function upsertPending(p, scroll) {
     if (!p || !p.id) return;
@@ -466,10 +537,10 @@
       try {
         const j = await jsonOrThrow(await api('api/pending/' + encodeURIComponent(p.id) + '/' + which, { method: 'POST' }));
         if (which === 'approve') {
-          const txt = stringify(j.result || j.error);
-          if (isUnknownOutcome(j)) finish('unknown', 'Ergebnis unbekannt', UNKNOWN_HINT + (txt ? '\n\n' + txt : ''));
-          else if (j.ok === false) finish('failed', 'Fehlgeschlagen', txt || 'Die Aktion ist fehlgeschlagen.');
-          else finish('approved', 'Ausgeführt', txt || 'Erledigt.');
+          const txt = stringify(j.result);
+          if (j.status === 'done') finish('approved', 'Ausgeführt', txt || 'Erledigt.');
+          else if (j.status === 'failed') finish('failed', 'Fehlgeschlagen', txt || 'Die Aktion ist fehlgeschlagen.');
+          else finish('unknown', 'Ergebnis unbekannt', UNKNOWN_HINT + (txt ? '\n\n' + txt : ''));
         } else finish('rejected', 'Verworfen', 'Nichts wurde ausgeführt.');
       } catch (e) {
         btn.textContent = orig;
@@ -512,7 +583,9 @@
       note.hidden = list.length > 0; note.textContent = 'Noch keine Gespräche.';
       for (const c of list) {
         const li = el('li'); const b = el('button'); b.type = 'button';
-        b.append(el('span', 'conv-title', c.title || 'Ohne Titel'), el('span', 'conv-time', fmtTime(c.updated_at)));
+        const t = el('span', 'conv-time', fmtTime(c.updated_at));
+        if (c.running || state.runningIds.has(c.id)) { t.appendChild(el('span', 'run-flag', ' · ● läuft')); }
+        b.append(el('span', 'conv-title', c.title || 'Ohne Titel'), t);
         if (c.id === state.conversationId) b.setAttribute('aria-current', 'true');
         b.addEventListener('click', () => openConversation(c.id));
         li.appendChild(b); ul.appendChild(li);
@@ -520,18 +593,18 @@
     } catch (e) { ul.textContent = ''; note.hidden = false; note.textContent = 'Gespräche konnten nicht geladen werden.'; }
   }
   async function openConversation(id) {
-    if (state.streaming && state.controller) { state.userStopped = false; state.controller.abort(); }
-    closeSide();
-    state.conversationId = id;
-    const c = await syncConversation({});
-    if (!c) { setBanner('Gespräch konnte nicht geladen werden.'); }
+    detachRun(); stopPolling(); closeSide();
+    state.conversationId = id; rememberConversation();
+    clearNotice(); messagesEl.textContent = ''; updateEmpty();
+    const c = await syncConversation(id, {});
+    if (!c) { if (state.conversationId === id && !state.notice) setBanner('Gespräch konnte nicht geladen werden.'); }
     else setBanner(state.keyMissing ? KEY_BANNER : null);
     toBottom(true);
   }
   function newConversation() {
-    if (state.streaming && state.controller) { state.userStopped = false; state.controller.abort(); }
+    detachRun(); stopPolling();
     clearNotice();
-    state.conversationId = null; messagesEl.textContent = ''; updateEmpty(); closeSide(); loadConversations(); input.focus();
+    state.conversationId = null; rememberConversation(); messagesEl.textContent = ''; updateEmpty(); closeSide(); loadConversations(); input.focus();
   }
 
   /* ---------- Status / Protokoll ---------- */
@@ -562,7 +635,7 @@
       setBanner(state.keyMissing ? KEY_BANNER : null);
     } catch (e) {
       state.areasConfigured = null;
-      dot.className = 'dot bad'; label.textContent = 'Offline';
+      dot.className = 'dot bad'; label.textContent = e.status === 401 ? 'Kein Zugang' : (e.status ? 'Fehler' : 'Offline');
       $('modelName').textContent = '–';
       setBanner(e.status ? e.message : 'Jarvis ist nicht erreichbar. Prüfe, ob das Add-on läuft.');
     }
@@ -632,7 +705,11 @@
   }
   input.addEventListener('input', () => { grow(); checkLen(); });
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(pointer: fine)').matches) { e.preventDefault(); $('composer').requestSubmit(); }
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(pointer: fine)').matches) {
+      e.preventDefault();
+      if (state.streaming) { if (input.value.trim()) busyHint(); return; }
+      $('composer').requestSubmit();
+    }
   });
   $('composer').addEventListener('submit', (e) => {
     e.preventDefault();
@@ -644,5 +721,6 @@
 
   updateEmpty();
   loadStatus(); loadPending(); loadConversations();
+  try { const saved = sessionStorage.getItem('jarvis.cid'); if (saved) openConversation(saved); } catch (_) { /* ignore */ }
   window.addEventListener('online', () => { loadStatus(); loadPending(); });
 })();

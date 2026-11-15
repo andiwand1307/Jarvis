@@ -286,3 +286,6 @@ dialog[open] { display: flex; flex-direction: column; }
 .log li.st-warn { border-left: 5px solid var(--amber); background: var(--amber-soft); }
 .pending-box { scroll-margin-top: 12px; }
 .card { scroll-margin-top: 12px; }
+
+.field dd.struct { font-family: var(--mono); }
+.run-flag { color: var(--accent); font-weight: 600; }
