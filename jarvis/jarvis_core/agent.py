@@ -14,7 +14,7 @@ from .llm import LLM, describe_error
 from .prompts import CHANNELS, context_block, system_blocks
 from .store import Store
 from .tools import CONFIRM, Registry, ToolError, server_tools, validate_input
-from .tools.base import readable
+from .tools.base import OutcomeUnknown, readable
 
 log = logging.getLogger("jarvis.agent")
 
@@ -25,6 +25,8 @@ BINDING_BETA = "thinking-binding-controls-2026-08-01"
 TOOL_TIMEOUT = 90.0
 PENDING_TEXT = "wartet auf Freigabe durch den Nutzer"
 CANCELLED_TEXT = "vom Nutzer abgebrochen"
+UNKNOWN_TEXT = ("Ergebnis unbekannt: Zeitüberschreitung, nachdem die Aktion gestartet wurde. Sie kann "
+                "stattgefunden haben. Nicht erneut senden, erst nachsehen.")
 SERVER_TOOL_LABELS = {"web_search": "Suche im Web …", "web_fetch": "Lese eine Webseite …"}
 MAX_CONTEXT_NOTES = 30
 MAX_CONTEXT_NOTE_CHARS = 4000
@@ -61,6 +63,18 @@ def history_content(blocks: list[dict]) -> list[dict]:
                 continue
         out.append(b)
     return out
+
+
+def storable(content: list[dict]) -> bool:
+    """An assistant message may be stored only if it carries text or a tool call, does not end
+    with a thinking block and has no server tool call without its result."""
+    if not any(b.get("type") in ("text", "tool_use") for b in content):
+        return False
+    if content[-1].get("type") in ("thinking", "redacted_thinking"):
+        return False
+    uses = {b.get("id") for b in content if b.get("type") == "server_tool_use"}
+    results = {b.get("tool_use_id") for b in content if str(b.get("type", "")).endswith("_tool_result")}
+    return uses <= results
 
 
 def _tool_result(tool_use_id: str, content: Any, is_error: bool = False) -> dict:
@@ -181,7 +195,10 @@ class Agent:
                     log.warning("Claude API error: %s", type(exc).__name__)
                     yield event("error", message=describe_error(exc))
                 except Exception as exc:  # noqa: BLE001 - every failure must end as an error event
-                    log.exception("agent run failed")
+                    if isinstance(exc, TypeError) and "authentication" in str(exc).lower():
+                        log.warning("no Claude credentials configured")
+                    else:
+                        log.exception("agent run failed")
                     yield event("error", message=describe_error(exc))
                 yield event("done")
             finally:
@@ -204,12 +221,19 @@ class Agent:
         messages = history + [user_msg]
 
         json_retries = 0
+        # Content of a turn that ended with pause_turn. It is sent back as the last message so the
+        # server can resume, but only stored once the turn completes, merged with its
+        # continuation; on cancel, error or step limit it is dropped, never left dangling.
+        paused: list[dict] = []
+        segment_start = len(reply)
         for _step in range(max(1, self.config.max_steps)):
             if cancel.is_set():
+                self._store_partial(cid, messages, reply, segment_start)
                 raise Cancelled()
+            request = messages + ([{"role": "assistant", "content": paused}] if paused else [])
             try:
                 content, stop_reason = None, None
-                async for item in _until_cancelled(self._stream_turn(channel, messages, reply), cancel):
+                async for item in _until_cancelled(self._stream_turn(channel, request, reply), cancel):
                     if item["type"] == "_final":
                         content, stop_reason = item["content"], item["stop_reason"]
                     else:
@@ -221,36 +245,43 @@ class Agent:
                     yield event("error", message="Claude hat ungültige Werkzeugdaten geliefert.")
                     return
                 continue
+            except Cancelled:
+                self._store_partial(cid, messages, reply, segment_start)
+                raise
             json_retries = 0
-            content = history_content(content or [])
+            content = [b for b in history_content(content or [])
+                       if not (b.get("type") == "text" and not str(b.get("text", "")).strip())]
+            combined = paused + content
 
             if stop_reason == "refusal":
                 yield event("error", message="Claude hat diese Anfrage abgelehnt.")
                 return
 
-            tool_uses = [b for b in content if b.get("type") == "tool_use"]
+            tool_uses = [b for b in combined if b.get("type") == "tool_use"]
             if stop_reason == "max_tokens":
-                if content and not tool_uses:
-                    self._append(cid, messages, {"role": "assistant", "content": content})
+                if not tool_uses and storable(combined):
+                    self._append(cid, messages, {"role": "assistant", "content": combined})
                 yield event("error", message="Die Antwort wurde wegen der Längenbegrenzung abgeschnitten.")
                 return
 
-            if not content:
-                # Never store an empty assistant turn; the API rejects it on the next request.
-                return
-
-            assistant = {"role": "assistant", "content": content}
             if stop_reason == "pause_turn":
-                self._append(cid, messages, assistant)
+                if not content:
+                    yield event("error", message="Claude hat die Arbeit unterbrochen und keine Antwort geliefert.")
+                    return
+                paused = combined
                 continue
 
             if stop_reason == "tool_use" and tool_uses:
+                assistant = {"role": "assistant", "content": combined}
+                paused = []
                 results = []
                 stopped = False
                 for block in tool_uses:
                     if stopped or cancel.is_set():
                         stopped = True
                         results.append(_tool_result(block.get("id", ""), CANCELLED_TEXT, True))
+                        self.store.log(tool=block.get("name", ""), risk="-", tool_input=block.get("input"),
+                                       result=CANCELLED_TEXT, status="cancelled", conversation_id=cid)
                         continue
                     async for item in self._execute(cid, block):
                         if item["type"] == "_result":
@@ -258,14 +289,31 @@ class Agent:
                         else:
                             yield item
                 self._append(cid, messages, assistant, {"role": "user", "content": results})
+                segment_start = len(reply)
                 if stopped or cancel.is_set():
                     raise Cancelled()
                 continue
 
-            self._append(cid, messages, assistant)
+            if not storable(combined):
+                # e.g. only thinking: storing it would leave an invalid history.
+                yield event("error", message="Claude hat keine Antwort geliefert. Bitte noch einmal versuchen.")
+                return
+            self._append(cid, messages, {"role": "assistant", "content": combined})
             return
 
         yield event("error", message="Abgebrochen: zu viele Arbeitsschritte in einer Anfrage.")
+
+    def _store_partial(self, cid: str, messages: list[dict], reply: list[str], start: int) -> None:
+        """Keeps text already shown to the user in the history, marked as cancelled."""
+        text = "".join(reply[start:]).strip()
+        if not text:
+            return
+        reply.append(" [abgebrochen]")
+        last = messages[-1] if messages else None
+        if last is None or last["role"] != "user":
+            return  # an assistant turn cannot follow another; display still shows the text
+        self._append(cid, messages, {"role": "assistant",
+                                     "content": [{"type": "text", "text": text + " [abgebrochen]"}]})
 
     def _context_notes(self) -> list[dict]:
         notes, total = [], 0
@@ -349,7 +397,8 @@ class Agent:
             self.store.log(tool=name, risk=risk, tool_input=tool_input,
                            result=f"offene Aktion {pending['id']}", status="pending", conversation_id=cid)
             yield event("tool", name=name, label=label, status="done")
-            yield event("pending", id=pending["id"], kind=kind, summary=summary, details=details)
+            yield event("pending", id=pending["id"], kind=kind, summary=summary, details=details,
+                        created_at=pending["created_at"])
             yield {"type": "_result", "block": _tool_result(tuid, {
                 "status": PENDING_TEXT,
                 "action_id": pending["id"],
@@ -366,22 +415,24 @@ class Agent:
         yield {"type": "_result", "block": _tool_result(tuid, result, not ok)}
 
     async def _run_handler(self, tool, tool_input: dict) -> tuple[str, Any]:
-        """(status, result) with status `ok`, `error` or `timeout`."""
+        """(status, result) with status `ok`, `error` or `timeout` (= outcome unknown)."""
         try:
             return "ok", await asyncio.wait_for(tool.handler(tool_input), timeout=TOOL_TIMEOUT)
+        except OutcomeUnknown as exc:
+            return "timeout", str(exc)
         except ToolError as exc:
             return "error", str(exc)
         except asyncio.TimeoutError:
-            return "timeout", ("Zeitüberschreitung: Das Ergebnis ist unbekannt. Es wird nicht automatisch "
-                               "wiederholt; bitte prüfen, ob die Aktion stattgefunden hat.")
+            return "timeout", UNKNOWN_TEXT
         except Exception as exc:  # noqa: BLE001
             log.exception("tool %s failed", tool.name)
             return "error", f"Werkzeugfehler: {type(exc).__name__}: {exc}"
 
     # Pending actions -------------------------------------------------------
 
-    async def approve(self, pending_id: str) -> tuple[bool, str] | None:
-        """Runs an approved action once. None if no such pending action exists (or it was resolved)."""
+    async def approve(self, pending_id: str) -> tuple[str, str] | None:
+        """Runs an approved action once. Returns (status, text) with status `done`, `failed` or
+        `unknown`; None if no such pending action exists (or it was resolved already)."""
         action = self.store.get_pending(pending_id)
         if not action or not self.store.claim_pending(pending_id, "executing"):
             return None
@@ -396,7 +447,7 @@ class Agent:
         self.store.log(tool=action["tool"], risk=CONFIRM, tool_input=action["input"], result=text,
                        status={"ok": "approved", "error": "approved_failed", "timeout": "approved_unknown"}[status],
                        conversation_id=action["conversation_id"])
-        return status == "ok", text
+        return final, text
 
     def reject(self, pending_id: str) -> bool:
         action = self.store.get_pending(pending_id)

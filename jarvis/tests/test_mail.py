@@ -197,3 +197,104 @@ def test_build_encodes_idn_domains_and_rejects_bad_addresses():
         client.build("jürgen@example.org", "s", "t")
     with pytest.raises(ToolError):
         client.build("kein empfaenger", "s", "t")
+
+
+@pytest.mark.parametrize("to", [
+    "max@example.org.", "a@b..de", "@b.de", "a b@c.de", "a@[127.0.0.1]", "max@localhost",
+    "Team: a@b.de, c@d.de;", "undisclosed-recipients:;", "a@b.de; c@d.de", "Müller, Hans <hans@x.de>",
+    "a@b.de Bcc: x@evil.com", "\"a@b.de\"@evil.com", "a@b.de\tc@d.de", "a@b.de\x85Bcc: x@evil.com",
+    'a@b.de, "x\\" <y@z.de>" <c@evil.com>', '"chef@firma.de" <c@evil.com>',
+])
+def test_strict_recipients(to):
+    client = mail.MailClient(MailConfig(sender="ich@example.org"))
+    with pytest.raises(ToolError):
+        client.build(to, "s", "t")
+
+
+@pytest.mark.parametrize("to,normalized", [
+    ("Max Mustermann <max@example.org>", "Max Mustermann <max@example.org>"),
+    ('"Müller, Hans" <hans@x.de>', None),
+    ("a@b.de, c@d.de", "a@b.de, c@d.de"),
+    ("max.o'brien+tag@Example.CO.uk", "max.o'brien+tag@example.co.uk"),
+    ("info@müller.de", "info@xn--mller-kva.de"),
+])
+def test_envelope_matches_checked_list(to, normalized):
+    client = mail.MailClient(MailConfig(sender="ich@example.org"))
+    msg = client.build(to, "s", "t")
+    expected = [a for _, a in mail.getaddresses([mail.check_addresses(to, "x")])]
+    assert mail.envelope_recipients(msg) == expected
+    if normalized:
+        assert mail.check_addresses(to, "x") == normalized
+
+
+def test_send_details_show_normalized_addresses():
+    from jarvis_core.tools import Registry
+    reg = Registry()
+    mail.register(reg, MailConfig(imap_host="i", smtp_host="s", user="u", password="p", sender="ich@example.org"))
+    _k, _s, details = reg.get("mail_send").pending_info({"to": "info@müller.de", "subject": "s", "body": "b"})
+    assert details["to"] == "info@xn--mller-kva.de"
+
+
+@pytest.mark.parametrize("inp", [{"since_days": 10**30}, {"since_days": -1}, {"limit": 0}, {"limit": 26}])
+async def test_search_numbers_bounded(inp):
+    from jarvis_core.tools import Registry
+    from jarvis_core.tools.base import validate_input
+    reg = Registry()
+    mail.register(reg, MailConfig(imap_host="i", user="u", password="p"))
+    tool = reg.get("mail_search")
+    assert validate_input(tool.input_schema, inp)
+    with pytest.raises(ToolError):
+        await tool.handler(inp)
+
+
+class FakeSMTP:
+    fail_at = None
+    sent: list = []
+
+    def __init__(self, *a, **k):
+        if self.fail_at == "connect":
+            raise OSError("refused")
+
+    def login(self, *a):
+        if self.fail_at == "login":
+            raise mail.smtplib.SMTPAuthenticationError(535, b"no")
+
+    def mail(self, sender):
+        return (250, b"ok")
+
+    def rcpt(self, r):
+        return (550, b"no such user") if self.fail_at == "rcpt" else (250, b"ok")
+
+    def data(self, raw):
+        if self.fail_at == "data_timeout":
+            raise TimeoutError("timed out")
+        if self.fail_at == "data_disconnect":
+            raise mail.smtplib.SMTPServerDisconnected("gone")
+        if self.fail_at == "data_reject":
+            return (554, b"spam")
+        FakeSMTP.sent.append(raw)
+        return (250, b"queued")
+
+    def quit(self):
+        pass
+
+    def close(self):
+        pass
+
+
+@pytest.mark.parametrize("fail_at,outcome", [
+    (None, "ok"), ("connect", "failed"), ("login", "failed"), ("rcpt", "failed"), ("data_reject", "failed"),
+    ("data_timeout", "unknown"), ("data_disconnect", "unknown"),
+])
+def test_smtp_phases(monkeypatch, fail_at, outcome):
+    from jarvis_core.tools.base import OutcomeUnknown
+    monkeypatch.setattr(FakeSMTP, "fail_at", fail_at)
+    monkeypatch.setattr(mail.smtplib, "SMTP_SSL", FakeSMTP)
+    client = mail.MailClient(MailConfig(smtp_host="s", user="u", password="p", sender="ich@example.org"))
+    msg = client.build("a@b.de", "s", "t")
+    if outcome == "ok":
+        client.send(msg)
+        return
+    with pytest.raises(ToolError) as info:
+        client.send(msg)
+    assert isinstance(info.value, OutcomeUnknown) is (outcome == "unknown")

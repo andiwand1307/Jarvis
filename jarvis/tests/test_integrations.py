@@ -15,14 +15,32 @@ from jarvis_core.tools.base import CONFIRM, WRITE, ToolError, validate_input
 from .conftest import FakeLLM, text_turn, tool_turn
 
 
-TRUSTED = ("scene.abend", "script.gute_nacht")
+TRUSTED = ("scene.abend", "script.gute_nacht", "switch.kaffee")
 
 
 @pytest.mark.parametrize("inp,expected", [
     # positive list, entity targets of the same domain
     ({"domain": "light", "service": "turn_on", "entity_id": "light.kueche"}, WRITE),
     ({"domain": "light", "service": "turn_on", "entity_id": ["light.a", "light.b"]}, WRITE),
-    ({"domain": "switch", "service": "toggle", "entity_id": "switch.kaffee"}, WRITE),
+    ({"domain": "switch", "service": "toggle", "entity_id": "switch.kaffee"}, WRITE),  # trusted
+    ({"domain": "switch", "service": "turn_on", "entity_id": "switch.garagentor_relais"}, CONFIRM),
+    ({"domain": "switch", "service": "turn_on", "entity_id": "switch.kaffee", "data": {"x": 1}}, CONFIRM),
+    ({"domain": "media_player", "service": "play_media", "entity_id": "media_player.wz",
+      "data": {"media_content_id": "media-source://camera/camera.haustuer", "media_content_type": "video"}}, CONFIRM),
+    ({"domain": "media_player", "service": "select_source", "entity_id": "media_player.wz", "data": {"source": "x"}}, CONFIRM),
+    ({"domain": "media_player", "service": "media_pause", "entity_id": "media_player.wz"}, WRITE),
+    ({"domain": "script", "service": "turn_on", "entity_id": "script.gute_nacht", "data": {"variables": {"x": 1}}}, CONFIRM),
+    ({"domain": "script", "service": "gute_nacht", "data": {"x": 1}}, CONFIRM),
+    ({"domain": "scene", "service": "turn_on", "entity_id": "scene.abend", "data": {"entities": {"lock.x": "unlocked"}}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "entity_id": "light.a", "data": {"entity_id": "light.b"}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "data": {"entity_id": "light.a", "Area_Id": "flur"}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "data": {"entity_id": "light.a", "label_ids": "x"}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "data": {"entity_id": "light.a", "area_id": None}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "data": {"entity_id": "light.a", "area_id": []}}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "entity_id": "LIGHT.A"}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "entity_id": "light.a\n"}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "entity_id": ["light.a\t"]}, CONFIRM),
+    ({"domain": "light", "service": "turn_on", "entity_id": " light.a "}, WRITE),
     ({"domain": "media_player", "service": "volume_set", "entity_id": "media_player.wz", "data": {"volume_level": 0.3}}, WRITE),
     ({"domain": "climate", "service": "set_temperature", "entity_id": "climate.bad", "data": {"temperature": 21}}, WRITE),
     ({"domain": "fan", "service": "turn_off", "entity_id": "fan.decke"}, WRITE),
@@ -115,6 +133,11 @@ def ha_registry(rec: Recorder, trusted=()) -> Registry:
     {"domain": "light", "service": "turn_on?x=1"},
     {"domain": "light", "service": "turn_on\n"},
     {"domain": "light", "service": "turn_on", "entity_id": {"a": 1}},
+    {"domain": "light", "service": "turn_on", "entity_id": "LIGHT.A"},
+    {"domain": "light", "service": "turn_on", "entity_id": "light.a", "data": {"entity_id": "lock.b"}},
+    {"domain": "light", "service": "turn_on", "entity_id": "light.a", "data": {"target": {"entity_id": "lock.b"}}},
+    {"domain": "light", "service": "turn_on", "entity_id": "light.a", "data": []},
+    {"domain": "light", "service": "turn_on", "entity_id": []},
 ])
 async def test_ha_handler_rejects_traversal_even_after_approval(bad):
     rec = Recorder(lambda r: httpx.Response(200, json=[]))
@@ -283,3 +306,52 @@ async def test_todoist_ids_validated(bad):
         with pytest.raises(ToolError):
             await reg.get("todoist_add_task").handler({"content": "x", "project_id": bad})
     assert rec.requests == []
+
+
+async def test_ha_unknown_after_send_vs_failed_before(config, store):
+    from jarvis_core.tools.base import OutcomeUnknown
+
+    def read_timeout(req):
+        raise httpx.ReadTimeout("timed out", request=req)
+
+    def refused(req):
+        raise httpx.ConnectError("refused", request=req)
+
+    for responder, exc in ((read_timeout, OutcomeUnknown), (lambda r: httpx.Response(500), OutcomeUnknown)):
+        tool = ha_registry(Recorder(responder)).get("ha_call_service")
+        with pytest.raises(exc):
+            await tool.handler({"domain": "lock", "service": "unlock", "entity_id": "lock.a"})
+    for responder in (refused, lambda r: httpx.Response(400, text="bad")):
+        tool = ha_registry(Recorder(responder)).get("ha_call_service")
+        with pytest.raises(ToolError) as info:
+            await tool.handler({"domain": "lock", "service": "unlock", "entity_id": "lock.a"})
+        assert not isinstance(info.value, OutcomeUnknown)
+
+    tool = ha_registry(Recorder(read_timeout)).get("ha_call_service")
+    agent = Agent(config, store, ha_registry(Recorder(read_timeout)), FakeLLM())
+    p = store.create_pending(conversation_id=None, tool="ha_call_service", kind="ha_service", summary="s",
+                             details={}, tool_input={"domain": "lock", "service": "unlock", "entity_id": "lock.a"})
+    status, text = await agent.approve(p["id"])
+    assert status == "unknown" and "Nicht erneut senden" in text
+    assert store.get_log(1)[0]["status"] == "approved_unknown"
+
+
+async def test_todoist_unknown_outcome_reported_to_model(config, store):
+    def read_timeout(req):
+        raise httpx.ReadTimeout("timed out", request=req)
+    reg = Registry()
+    todoist.register(reg, "tok", transport=Recorder(read_timeout).transport())
+    llm = FakeLLM([tool_turn("todoist_add_task", {"content": "Milch"}), text_turn("ok")])
+    agent = Agent(config, store, reg, llm)
+    [e async for e in agent.run(None, "Milch aufschreiben", "web")]
+    result = llm.calls[1]["messages"][-1]["content"][0]
+    assert result["is_error"] and "Unklar, ob ausgeführt" in result["content"] and "prüfen" in result["content"]
+    assert store.get_log(1)[0]["status"] == "timeout"
+
+
+@pytest.mark.parametrize("inp", [{"days": 10**30}, {"days": 0}, {"days": 367}, {"days": "x"}])
+async def test_calendar_days_bounded(inp):
+    tool = ha_registry(Recorder(lambda r: httpx.Response(200, json=[]))).get("ha_calendar_events")
+    assert validate_input(tool.input_schema, inp)
+    with pytest.raises(ToolError):
+        await tool.handler(inp)

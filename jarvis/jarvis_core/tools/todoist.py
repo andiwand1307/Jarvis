@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 import httpx
 
-from .base import READ, TODOIST_ID, WRITE, Registry, Tool, ToolError, require
+from .base import READ, TODOIST_ID, WRITE, OutcomeUnknown, Registry, Tool, ToolError, require
 
 API_URL = "https://api.todoist.com/api/v1"
 MAX_ITEMS = 200
@@ -28,7 +28,19 @@ class TodoistClient:
 
     async def _request(self, method: str, path: str, **kwargs: Any) -> Any:
         async with self._client() as client:
-            resp = await client.request(method, path, **kwargs)
+            try:
+                resp = await client.request(method, path, **kwargs)
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout) as exc:
+                raise ToolError(f"Todoist nicht erreichbar: {exc}") from exc
+            except httpx.HTTPError as exc:
+                if method == "GET":
+                    raise ToolError(f"Todoist antwortet nicht: {exc}") from exc
+                raise OutcomeUnknown("Unklar, ob ausgeführt: Die Anfrage an Todoist wurde gesendet, aber "
+                                     "es kam keine Antwort. Erst mit todoist_find_tasks prüfen, nicht einfach "
+                                     "wiederholen.") from exc
+        if resp.status_code >= 500 and method != "GET":
+            raise OutcomeUnknown(f"Unklar, ob ausgeführt: Todoist meldet Fehler {resp.status_code}. Erst prüfen, "
+                                 "nicht einfach wiederholen.")
         if resp.status_code in (401, 403):
             raise ToolError("Todoist lehnt den Zugang ab (Token prüfen).")
         if resp.status_code == 404:

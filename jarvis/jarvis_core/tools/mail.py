@@ -18,7 +18,7 @@ from email.utils import formataddr, formatdate, getaddresses, make_msgid, parsea
 from html.parser import HTMLParser
 
 from ..config import MailConfig
-from .base import CONFIRM, IMAP_UID, READ, WRITE, Registry, Tool, ToolError, require
+from .base import CONFIRM, IMAP_UID, READ, WRITE, OutcomeUnknown, Registry, Tool, ToolError, bounded_int, require
 
 MAX_RESULTS = 25
 MAX_BODY = 8000
@@ -179,25 +179,44 @@ def _literal_part(response: list) -> bytes | None:
     return None
 
 
+_LOCAL = re.compile(r"[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*")
+_DOMAIN = re.compile(r"(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?")
+
+
 def check_addresses(value: str, what: str) -> str:
-    """Validates a comma-separated address list; returns it with IDNA-encoded domains."""
+    """Validates a comma-separated address list strictly; returns it normalized
+    (IDNA domains, display names kept). Group syntax, IP literals and odd forms are rejected."""
     no_control(value, what)
-    pairs = getaddresses([value])
+    if ";" in value or re.search(r"^[^\"<]*:", value):
+        raise ToolError(f"Gruppen- oder Listen-Syntax wird nicht unterstützt in {what}: {value!r}")
+    pairs = getaddresses([value], strict=True)
     out = []
     for name, addr in pairs:
         local, at, domain = addr.rpartition("@")
-        if not at or not local or not domain or " " in addr:
+        if not at or not _LOCAL.fullmatch(local or ""):
             raise ToolError(f"Ungültige Adresse in {what}: {value!r}")
-        if not local.isascii():
-            raise ToolError(f"Adressen mit Umlauten vor dem @ werden nicht unterstützt: {addr!r}")
+        if re.search(r"[@<>]", name):
+            # A display name that looks like an address would hide the real recipient.
+            raise ToolError(f"Anzeigename darf keine Adresse enthalten: {name!r}")
         try:
-            domain = domain.encode("idna").decode("ascii")
+            domain = domain.encode("idna").decode("ascii").lower()
         except UnicodeError as exc:
             raise ToolError(f"Ungültige Domain in {what}: {domain!r}") from exc
+        if not _DOMAIN.fullmatch(domain):
+            raise ToolError(f"Ungültige Domain in {what}: {domain!r}")
         out.append(formataddr((name, f"{local}@{domain}")))
     if not out:
         raise ToolError(f"Keine Adresse in {what}.")
     return ", ".join(out)
+
+
+def envelope_recipients(msg: EmailMessage) -> list[str]:
+    fields = [str(v) for k in ("To", "Cc", "Bcc") for v in (msg.get_all(k) or [])]
+    return [addr for _, addr in getaddresses(fields)]
+
+
+def _plain(addresses: str) -> list[str]:
+    return [addr for _, addr in getaddresses([addresses])]
 
 
 # --- client -----------------------------------------------------------------------
@@ -353,6 +372,9 @@ class MailClient:
             msg.as_bytes(policy=email.policy.SMTP)  # surface encoding problems before approval
         except Exception as exc:  # noqa: BLE001
             raise ToolError(f"Mail lässt sich so nicht erstellen: {exc}") from exc
+        expected = _plain(to) + (_plain(cc) if cc else [])
+        if envelope_recipients(msg) != expected:
+            raise ToolError("Die Empfänger der fertigen Mail weichen von der geprüften Liste ab.")
         return msg
 
     def save_draft(self, msg: EmailMessage) -> str:
@@ -369,20 +391,49 @@ class MailClient:
             _logout(conn)
 
     def send(self, msg: EmailMessage) -> None:
+        """Errors before DATA mean nothing was sent (ToolError); errors during or after DATA
+        mean the server may have accepted the mail (OutcomeUnknown)."""
         cfg = self.cfg
+        sender = parseaddr(cfg.sender)[1]
+        rcpts = envelope_recipients(msg)
+        raw = msg.as_bytes(policy=email.policy.SMTP)
         try:
             if cfg.smtp_security == "starttls":
-                with smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=30) as smtp:
-                    smtp.starttls(context=ssl.create_default_context())
-                    smtp.login(cfg.user, cfg.password)
-                    smtp.send_message(msg)
+                smtp = smtplib.SMTP(cfg.smtp_host, cfg.smtp_port, timeout=30)
+                smtp.starttls(context=ssl.create_default_context())
             else:
-                with smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port, timeout=30,
-                                      context=ssl.create_default_context()) as smtp:
-                    smtp.login(cfg.user, cfg.password)
-                    smtp.send_message(msg)
+                smtp = smtplib.SMTP_SSL(cfg.smtp_host, cfg.smtp_port, timeout=30,
+                                        context=ssl.create_default_context())
         except (smtplib.SMTPException, OSError) as exc:
-            raise ToolError(f"Versand fehlgeschlagen: {exc}") from exc
+            raise ToolError(f"Versand fehlgeschlagen (keine Verbindung): {exc}") from exc
+        try:
+            try:
+                smtp.login(cfg.user, cfg.password)
+                code, resp = smtp.mail(sender)
+                if code != 250:
+                    raise ToolError(f"Versand abgelehnt (Absender): {code} {resp!r}")
+                for rcpt in rcpts:
+                    code, resp = smtp.rcpt(rcpt)
+                    if code not in (250, 251):
+                        raise ToolError(f"Versand abgelehnt (Empfänger {rcpt}): {code} {resp!r}")
+            except (smtplib.SMTPException, OSError) as exc:
+                raise ToolError(f"Versand fehlgeschlagen, nichts gesendet: {exc}") from exc
+            try:
+                code, resp = smtp.data(raw)
+            except smtplib.SMTPDataError as exc:
+                raise ToolError(f"Der Mailserver hat die Mail abgelehnt: {exc}") from exc
+            except (smtplib.SMTPException, OSError) as exc:
+                raise OutcomeUnknown(
+                    "Ergebnis unbekannt: Die Verbindung brach beim Übertragen der Mail ab. Die Mail kann "
+                    "angekommen sein. Nicht erneut senden, erst im Gesendet-Ordner bzw. beim Empfänger "
+                    "nachsehen.") from exc
+            if code != 250:
+                raise ToolError(f"Der Mailserver hat die Mail abgelehnt: {code} {resp!r}")
+        finally:
+            try:
+                smtp.quit()
+            except Exception:  # noqa: BLE001 - mail is already handed over or refused
+                smtp.close()
 
 
 def _logout(conn: imaplib.IMAP4) -> None:
@@ -411,11 +462,17 @@ def register(registry: Registry, cfg: MailConfig, client: MailClient | None = No
     def precheck(inp: dict) -> None:
         _build(inp)
 
+    def _normalized(value: str, what: str) -> str:
+        try:
+            return check_addresses(value, what)
+        except ToolError:
+            return value
+
     def send_summary(inp: dict) -> tuple[str, dict]:
         details = {
             "from": cfg.sender,
-            "to": inp.get("to", ""),
-            "cc": inp.get("cc", ""),
+            "to": _normalized(inp.get("to", ""), "Empfänger"),
+            "cc": _normalized(inp.get("cc", ""), "Kopie") if inp.get("cc") else "",
             "subject": inp.get("subject", ""),
             "body": inp.get("body", ""),
             "in_reply_to": inp.get("in_reply_to", ""),
@@ -423,9 +480,10 @@ def register(registry: Registry, cfg: MailConfig, client: MailClient | None = No
         return f"Mail an {inp.get('to')}: {inp.get('subject')}", details
 
     async def search(inp: dict) -> dict:
-        limit = max(1, min(int(inp.get("limit") or 10), MAX_RESULTS))
+        limit = bounded_int(inp.get("limit"), 1, MAX_RESULTS, "limit", default=10)
+        since = bounded_int(inp.get("since_days"), 0, 3650, "since_days")
         results = await asyncio.to_thread(
-            client.search, inp.get("query", ""), inp.get("from", ""), inp.get("since_days"),
+            client.search, inp.get("query", ""), inp.get("from", ""), since,
             bool(inp.get("unread_only")), inp.get("folder") or "INBOX", limit,
         )
         return {"count": len(results), "mails": results}
@@ -456,10 +514,10 @@ def register(registry: Registry, cfg: MailConfig, client: MailClient | None = No
             "properties": {
                 "query": {"type": "string", "pattern": _NO_CONTROL, "maxLength": 200},
                 "from": {"type": "string", "pattern": _NO_CONTROL, "maxLength": 200},
-                "since_days": {"type": "integer"},
+                "since_days": {"type": "integer", "minimum": 0, "maximum": 3650},
                 "unread_only": {"type": "boolean"},
                 "folder": {"type": "string", "pattern": _NO_CONTROL, "maxLength": 200},
-                "limit": {"type": "integer"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": MAX_RESULTS},
             },
             "additionalProperties": False,
         },

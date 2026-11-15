@@ -1,6 +1,7 @@
 """Cancellation, history validity, thinking binding, error texts, approval edge cases."""
 
 import asyncio
+import json
 
 import anthropic
 import httpx
@@ -120,25 +121,25 @@ async def test_cancel_during_model_stream(config, store, calls):
     assert not agent.is_running(cid)
 
 
-async def test_client_disconnect_cancels(config, store, calls):
+async def test_client_disconnect_does_not_cancel(config, store, calls):
     gate = asyncio.Event()
-    turn = {"content": [{"type": "text", "text": "nie"}], "stop_reason": "end_turn", "gate": gate}
+    turn = {"content": [{"type": "text", "text": "fertig gedacht"}], "stop_reason": "end_turn", "gate": gate}
     agent, _ = make_agent(config, store, calls, [turn])
     gen = _stream(agent, None, "hallo", "web")
     first = await gen.__anext__()
     assert first.startswith(b"event: start")
-    await gen.aclose()  # what Starlette does when the client goes away
-    for _ in range(100):
-        if turn.get("closed"):
-            break
-        await asyncio.sleep(0.01)
-    assert turn.get("closed") is True
+    await gen.aclose()  # what Starlette does when the client goes away (phone asleep, reload)
     cid = store.list_conversations()[0]["id"]
-    for _ in range(100):
+    assert agent.is_running(cid)
+    gate.set()  # the model answers after the client is gone
+    for _ in range(200):
         if not agent.is_running(cid):
             break
         await asyncio.sleep(0.01)
     assert not agent.is_running(cid)
+    assert store.get_messages(cid)[-1] == {**store.get_messages(cid)[-1], "role": "assistant",
+                                            "text": "fertig gedacht"}
+    assert [m["role"] for m in store.get_api_messages(cid)] == ["user", "assistant"]
 
 
 async def test_cancel_and_running_endpoints(config, store, calls):
@@ -218,14 +219,15 @@ async def test_timeout_on_approved_action_is_unknown_and_not_repeatable(config, 
     events = [e async for e in agent.run(None, "senden", "web")]
     cid = events[0]["data"]["conversation_id"]
     pid = [e for e in events if e["type"] == "pending"][0]["data"]["id"]
-    ok, result = await agent.approve(pid)
-    assert ok is False and "unbekannt" in result and "nicht automatisch" in result
+    status, result = await agent.approve(pid)
+    assert status == "unknown" and "Ergebnis unbekannt" in result and "Nicht erneut senden" in result
     assert store.get_pending(pid)["status"] == "unknown"
     assert await agent.approve(pid) is None and len(sent) == 1
     assert store.get_log(1)[0]["status"] == "approved_unknown"
     llm_calls = agent.llm.calls
     [e async for e in agent.run(cid, "und?", "web")]
-    assert "Ergebnis unbekannt" in llm_calls[-1]["messages"][-1]["content"][0]["text"]
+    context = llm_calls[-1]["messages"][-1]["content"][0]["text"]
+    assert "Ergebnis UNBEKANNT" in context and "Nicht wiederholen, ohne den Nutzer zu fragen" in context
 
 
 def test_interrupted_actions_marked_unknown_on_start(config, store, calls):
@@ -263,9 +265,29 @@ def test_details_contain_every_input_key(config, store, calls):
         sample = CONFIRM_SAMPLES[tool.name]
         assert set(sample) == set(tool.input_schema["properties"]), tool.name
         _kind, _summary, details = tool.pending_info(sample)
+        flat = json.dumps(details, ensure_ascii=False)
         for key, value in sample.items():
-            assert details.get(key) == value, (tool.name, key)
-    assert registry.get("mail_send").pending_info(CONFIRM_SAMPLES["mail_send"])[2]["from"] == "ich@example.org"
+            if isinstance(value, str):
+                assert value in flat or key in ("to", "cc"), (tool.name, key)
+            assert key in details or key in json.dumps(details.get("body", {})), (tool.name, key)
+    mail_details = registry.get("mail_send").pending_info(CONFIRM_SAMPLES["mail_send"])[2]
+    assert mail_details["from"] == "ich@example.org"
+    assert mail_details["to"] == "Chef <chef@firma.de>" and mail_details["in_reply_to"] == "<abc@firma.de>"
+
+
+def test_ha_card_is_built_from_the_sent_body(config, store, calls):
+    tool = _full_registry(config, store, calls).get("ha_call_service")
+    _k, summary, details = tool.pending_info(CONFIRM_SAMPLES["ha_call_service"])
+    assert summary == "Home Assistant: lock.unlock für lock.haustuer"
+    assert details["body"] == {"code": "1234", "entity_id": ["lock.haustuer"]}
+    assert details["target"] == {"entity_id": ["lock.haustuer"]} and details["data"] == {"code": "1234"}
+    _k, summary, details = tool.pending_info({"domain": "light", "service": "turn_on", "data": {"area_id": "flur"}})
+    assert summary == "Home Assistant: light.turn_on für area_id flur"
+    assert details["body"] == {"area_id": "flur"}
+    _k, summary, _d = tool.pending_info({"domain": "light", "service": "turn_on", "data": {"area_id": ""}})
+    assert summary == 'Home Assistant: light.turn_on für area_id ""'
+    _k, summary, _d = tool.pending_info({"domain": "script", "service": "gute_nacht"})
+    assert summary == "Home Assistant: script.gute_nacht (ohne Ziel)"
 
 
 @pytest.mark.parametrize("bad", [
@@ -290,13 +312,21 @@ def test_approve_result_is_readable_text(make_client):
     c = make_client(FakeLLM([tool_turn("t_confirm", {"x": "7"}), text_turn("ok")]))
     body = c.post("api/chat", json={"message": "x"}).text
     pid = body.split('"id": "')[1].split('"')[0]
-    assert c.post(f"api/pending/{pid}/approve").json() == {"ok": True, "result": "Erledigt: 7"}
+    assert c.post(f"api/pending/{pid}/approve").json() == {"ok": True, "status": "done", "result": "Erledigt: 7"}
 
 
 def test_validation_error_detail_is_string(make_client):
-    r = make_client().post("api/chat", json={})
-    assert r.status_code == 422
-    assert isinstance(r.json()["detail"], str) and "message" in r.json()["detail"]
+    c = make_client()
+    r = c.post("api/chat", json={})
+    assert r.status_code == 422 and r.json()["detail"] == "Das Feld „Nachricht“ fehlt."
+    r = c.post("api/chat", json={"message": "x" * 20001})
+    assert r.json()["detail"] == "Die Nachricht ist zu lang (höchstens 20 000 Zeichen)."
+    r = c.post("api/chat", json={"message": 5})
+    assert r.json()["detail"] == "„Nachricht“ muss Text sein."
+    r = c.post("api/chat", content=b"{kaputt", headers={"content-type": "application/json"})
+    assert r.status_code == 422 and "JSON" in r.json()["detail"]
+    r = c.get("api/log?limit=9999")
+    assert r.status_code == 422 and "limit" in r.json()["detail"] and "less" not in r.json()["detail"]
 
 
 # --- memory notes ------------------------------------------------------------------------

@@ -66,41 +66,55 @@ Jedes Werkzeug hat eine Risikostufe:
 Regeln:
 - Freigabe erfolgt ausschließlich über `/api/pending/{id}/approve`, nie durch das Modell selbst.
   Das Werkzeug liefert dem Modell „wartet auf Freigabe“ zurück.
-- Home-Assistant-Dienste: **Positivliste**. `write` sind nur diese Dienste, und nur wenn jedes Ziel
-  eine `entity_id` derselben Domain ist:
-  - `light`, `switch`: `turn_on`, `turn_off`, `toggle`
+- Home-Assistant-Dienste: **Positivliste**. `write` sind nur diese Dienste, und nur wenn das Ziel
+  genau an einer Stelle angegeben ist und ausschließlich aus `entity_id`s derselben Domain besteht:
+  - `light`: `turn_on`, `turn_off`, `toggle`
   - `fan`: `turn_on`, `turn_off`, `toggle`, `set_percentage`, `increase_speed`, `decrease_speed`,
     `oscillate`, `set_direction`, `set_preset_mode`
-  - `media_player`: Ein/Aus, Lautstärke, Wiedergabe-Steuerung, `select_source`, `select_sound_mode`,
-    `shuffle_set`, `repeat_set`, `media_seek`, `play_media`
+  - `media_player`: nur Wiedergabe-Steuerung und Lautstärke: `turn_on`, `turn_off`, `toggle`,
+    `volume_up`, `volume_down`, `volume_set`, `volume_mute`, `media_play`, `media_pause`,
+    `media_play_pause`, `media_stop`, `media_next_track`, `media_previous_track`, `media_seek`,
+    `shuffle_set`, `repeat_set`
   - `climate`: `turn_on`, `turn_off`, `set_temperature`, `set_hvac_mode`, `set_preset_mode`,
     `set_fan_mode`, `set_humidity`, `set_swing_mode`
-  - Szenen und Skripte (`scene.turn_on`, `script.turn_on`, `script.<name>`) nur für Entitäten aus der
-    vom Nutzer gepflegten Liste `HA_TRUSTED_ENTITIES` (Add-on-Option `ha_trusted_entities`).
+  - nur für Entitäten aus der vom Nutzer gepflegten Liste `HA_TRUSTED_ENTITIES` (Add-on-Option
+    `ha_trusted_entities`) und nur **ohne** weitere Dienstdaten: `switch.turn_on`/`turn_off`/`toggle`,
+    `scene.turn_on`, `script.turn_on`, `script.<name>` (Skript-`variables` oder andere Daten → `confirm`).
 
-  Alles andere ist `confirm`: `lock`, `alarm_control_panel`, `cover`, `siren`, `valve`,
+  Alles andere ist `confirm`, insbesondere: `lock`, `alarm_control_panel`, `cover`, `siren`, `valve`,
+  nicht gelistete Schalter (ein Schalter kann ein Türöffner-Relais sein), `media_player.play_media`,
+  `select_source`, `select_sound_mode` und alles, was Inhalte, URLs oder Apps startet,
   `homeassistant.*`, `automation.*`, `group.*`, `input_*`, `button.press`, `notify`, `shell_command`,
-  `rest_command`, `python_script`, `scene.apply`/`scene.create`, nicht freigeschaltete Szenen/Skripte,
+  `rest_command`, `python_script`, `scene.apply`/`scene.create`, nicht gelistete Szenen/Skripte,
   unbekannte Domains und Dienste, Ziele über `area_id`/`device_id`/`floor_id`/`label_id` (auch unter
-  `target`), `entity_id: all`, Entitäten fremder Domains, kein Ziel. Domain und Dienstname müssen
-  `^[a-z0-9_]+$` erfüllen (sonst abgewiesen, auch nach Freigabe). Hinweis: `switch` bleibt `write`,
-  obwohl ein Schalter real etwas Heikles schalten kann (Steckdose, Türöffner-Relais); solche Geräte
-  gehören hinter eine `lock`/`cover`-Entität oder dürfen Jarvis nicht zugänglich sein.
+  `target`, auch leer oder in abweichender Schreibweise), `entity_id: all`, Entitäten fremder Domains,
+  kein Ziel. Domain und Dienstname müssen `^[a-z0-9_]+$` erfüllen; ein Ziel an zwei Stellen (oben und
+  in `data`) ist eine ungültige Eingabe (abgewiesen, auch nach Freigabe).
 - IDs, die in URLs oder Protokollbefehle gehen, werden streng geprüft: HA-`entity_id`
   `^[a-z0-9_]+\.[a-z0-9_]+$`, Todoist-IDs `^[A-Za-z0-9_-]+$`, IMAP-UID `^\d+$`; Steuerzeichen in
   Mail-Suchbegriffen, Absendern, Ordnern und Kopfzeilen werden abgewiesen.
-- Die Freigabekarte (`details`) enthält alles, was die Ausführung beeinflusst (bei Mails auch
-  `from`, `cc`, `in_reply_to`). Ungültige Eingaben werden schon beim Anlegen abgewiesen.
-- Eine freigegebene Aktion läuft genau einmal. Zeitüberschreitung oder Absturz während der
-  Ausführung ergibt den Status `unknown` („Ergebnis unbekannt“); es wird nie automatisch wiederholt.
+- Die Freigabekarte (`details`) enthält alles, was die Ausführung beeinflusst. Home Assistant:
+  `{domain, service, target, data, body}` mit `body` = genau der gesendete Inhalt, die Kopfzeile nennt
+  das Ziel (auch `area_id` u. ä.). Mail: `{from, to, cc, subject, body, in_reply_to}` mit normalisierten
+  Adressen (IDNA-Domains); die Umschlag-Empfänger der fertigen Mail müssen genau der geprüften Liste
+  entsprechen. Ungültige Eingaben werden schon beim Anlegen abgewiesen.
+- Eine freigegebene Aktion läuft genau einmal. Ergebnis `done`, `failed` oder `unknown`:
+  `failed` nur, wenn sicher nichts ausgeführt wurde (Verbindungsaufbau, Anmeldung, Ablehnung mit 4xx
+  bzw. SMTP-Ablehnung vor oder bei DATA); `unknown`, wenn die Anfrage gesendet war und keine
+  verlässliche Antwort kam (Lese-Zeitlimit, Verbindungsabbruch nach dem Senden bzw. während SMTP DATA,
+  HA-Fehler 5xx, Zeitüberschreitung, Absturz). `unknown` wird nie automatisch wiederholt; das Modell
+  erfährt, dass es nicht wiederholen darf, ohne den Nutzer zu fragen. Bei `write`-Werkzeugen bekommt
+  das Modell im selben Fall „Unklar, ob ausgeführt … erst prüfen“.
 - Inhalte aus Mails, Webseiten und Werkzeugergebnissen sind Daten, keine Anweisungen. Das steht
   im Systemprompt; die Freigabepflicht ist die eigentliche Absicherung.
 - Jeder Werkzeugaufruf landet im Protokoll (Zeit, Werkzeug, Eingabe, Ergebnis-Kurzform, Stufe).
 - Zugangsdaten stehen nur in Add-on-Optionen bzw. Umgebungsvariablen, nie im Repository.
 - Zugriff auf die Oberfläche: im Add-on über HA-Ingress (HA übernimmt die Anmeldung). Außerhalb
   des Add-ons ist `JARVIS_TOKEN` Pflicht (Bearer); ohne Token startet der Dienst nur auf 127.0.0.1
-  und nimmt nur Anfragen mit `Host` 127.0.0.1/localhost/[::1] an; bei POST muss ein vorhandener
-  `Origin` ebenfalls lokal sein (Schutz gegen DNS-Rebinding). Das Zugriffsprotokoll von uvicorn ist aus.
+  und nimmt nur Anfragen an, deren `Host` exakt `127.0.0.1`, `localhost` oder `[::1]` ist (optional mit
+  Port); bei POST muss ein vorhandener `Origin` exakt `http(s)://` + einer dieser Namen (+ Port) sein
+  (Schutz gegen DNS-Rebinding). Im Token-Modus muss ein vorhandener `Origin` bei POST zum `Host` der
+  Anfrage passen. Pfade mit Steuerzeichen → 400. Das Zugriffsprotokoll von uvicorn ist aus.
 
 ## 5. HTTP-Schnittstelle
 
@@ -115,7 +129,7 @@ Alle Pfade relativ (Ingress setzt ein Präfix davor). JSON, UTF-8.
 | GET | `api/conversations/{id}` | `{id, running, messages: [{role, text, created_at}]}`; `running`: bool, läuft gerade eine Anfrage |
 | POST | `api/conversations/{id}/cancel` | bricht eine laufende Anfrage ab; `{"ok": true, "was_running": bool}` |
 | GET | `api/pending` | offene Aktionen `[{id, kind, summary, details, created_at}]` |
-| POST | `api/pending/{id}/approve` | führt aus; `{ok, result}` |
+| POST | `api/pending/{id}/approve` | führt aus; `{"ok": bool, "status": "done"\|"failed"\|"unknown", "result": "<lesbarer Text>"}`, HTTP 200 in allen drei Fällen, `ok` nur bei `done` true |
 | POST | `api/pending/{id}/reject` | verwirft; `{ok}` |
 | GET | `api/log?limit=50` | Protokoll |
 
@@ -124,20 +138,27 @@ Ergänzungen (abwärtskompatibel, vom Backend nachgetragen):
 - `api/chat` akzeptiert optional `"channel": "web"|"phone"|"event"` (Standard `web`).
 - Fehler: unbekanntes Gespräch → 404, unbekannte/erledigte offene Aktion bei approve/reject → 404
   (`{"ok": false, ...}`), leere Nachricht → 400, ungültiger Body → 422 mit `detail` als lesbarer
-  Zeichenkette. Ist das Gespräch in `api/chat` unbekannt, kommen nur `error` und `done` (kein `start`).
+  deutscher Zeichenkette (z. B. „Die Nachricht ist zu lang (höchstens 20 000 Zeichen).“). Ist das Gespräch in `api/chat` unbekannt, kommen nur `error` und `done` (kein `start`).
   Läuft im Gespräch schon eine Anfrage, kommen ebenfalls nur `error` und `done`.
-- `approve` liefert `result` als lesbaren Text (z. B. „Mail an … gesendet: …“), auch bei `ok: false`.
-- Abbrechen (`cancel`, oder Abbruch der SSE-Verbindung durch den Client): wirkt vor dem nächsten
-  Modell-Aufruf und vor dem nächsten Werkzeug, ein laufender Modell-Strom wird sofort beendet; ein
-  gerade laufendes Werkzeug läuft zu Ende. Noch nicht ausgeführte Werkzeugaufrufe bekommen im Verlauf
-  das Ergebnis „vom Nutzer abgebrochen“. Der Strom endet mit `error` `{"message": "Abgebrochen.",
-  "cancelled": true}` und `done`.
+- `approve` liefert `result` als lesbaren deutschen Text (z. B. „Mail an … gesendet: …“).
+- Abbrechen nur über `POST api/conversations/{id}/cancel`. Ein Verbindungsabbruch des SSE-Clients
+  (Handy schläft, Neuladen, Gesprächswechsel) bricht **nicht** ab: der Lauf läuft serverseitig zu Ende
+  und wird gespeichert, Ereignisse ohne Zuhörer werden verworfen; `running` zeigt, ob er noch läuft.
+  Der Abbruch wirkt vor dem nächsten Modell-Aufruf und vor dem nächsten Werkzeug, ein laufender
+  Modell-Strom wird sofort beendet; ein gerade laufendes Werkzeug läuft zu Ende. Noch nicht
+  ausgeführte Werkzeugaufrufe bekommen im Verlauf „vom Nutzer abgebrochen“ (Protokoll `cancelled`).
+  Bereits gestreamter Text bleibt als Antwort mit dem Zusatz „[abgebrochen]“ in Anzeige und Verlauf.
+  Der Strom endet mit `error` `{"message": "Abgebrochen.", "cancelled": true}` und `done`.
+- Verlauf: Eine Assistenten-Nachricht wird nur gespeichert, wenn sie Text oder einen Werkzeugaufruf
+  enthält und kein Server-Werkzeug offen lässt. Nach `pause_turn` wird die pausierte Nachricht zum
+  Fortsetzen zurückgeschickt und erst mit ihrer Fortsetzung zu einer Nachricht zusammengefasst
+  gespeichert; bei Abbruch, Fehler oder Schrittlimit wird sie verworfen.
 - `api/log`-Einträge: `{id, created_at, conversation_id, tool, risk, input, result, status}`,
-  neueste zuerst; `status` ∈ `ok`, `error`, `timeout`, `invalid`, `pending`, `approved`,
-  `approved_failed`, `approved_unknown`, `rejected`, `interrupted`.
+  neueste zuerst; `status` ∈ `ok`, `error`, `invalid`, `timeout` (Ergebnis unklar), `pending`,
+  `approved`, `approved_failed`, `approved_unknown`, `rejected`, `interrupted`, `cancelled` (vollständige Liste).
 - Token-Modus (außerhalb des Add-ons mit `JARVIS_TOKEN`): `api/*` braucht `Authorization: Bearer
-  <token>`; alternativ `?token=<token>` oder das Cookie `jarvis_token`. Wer eine Seite der Oberfläche
-  mit `?token=<token>` öffnet, bekommt ein Cookie mit einem aus dem Token abgeleiteten Wert (HMAC,
+  <token>` oder das Cookie `jarvis_token`; `?token=` gilt nur auf der Startseite (`/`, `index.html`),
+  nicht auf `api/…`. Wer die Startseite mit `?token=<token>` öffnet, bekommt ein Cookie mit einem aus dem Token abgeleiteten Wert (HMAC,
   `HttpOnly`, `SameSite=Strict`, `Secure` bei HTTPS) und eine Weiterleitung (303) auf dieselbe Adresse
   ohne Token. `api/health` und die statischen Dateien sind ohne Token erreichbar.
 - Ergebnisse freigegebener oder verworfener Aktionen erfährt das Modell beim nächsten Beitrag im
@@ -152,7 +173,7 @@ Jede Zeile `event: <typ>` + `data: <json>`.
 | `start` | `{"conversation_id": "..."}` |
 | `text` | `{"delta": "..."}` |
 | `tool` | `{"name": "...", "label": "Durchsuche Mails …", "status": "running"\|"done"\|"error"}` |
-| `pending` | `{"id": "...", "kind": "mail_send", "summary": "...", "details": {...}}` |
+| `pending` | `{"id": "...", "kind": "mail_send", "summary": "...", "details": {...}, "created_at": "..."}` |
 | `error` | `{"message": "..."}`, bei Abbruch zusätzlich `"cancelled": true` |
 | `done` | `{}` |
 
@@ -183,7 +204,7 @@ Umgebungsvariablen; im Add-on setzt `run.sh` sie aus `/data/options.json` (Optio
 | `TODOIST_API_TOKEN` (`todoist_api_token`) | Todoist (API v1) | – |
 | `MAIL_IMAP_HOST`/`_PORT`, `MAIL_SMTP_HOST`/`_PORT`, `MAIL_SMTP_SECURITY` (`ssl`/`starttls`), `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_FROM`, `MAIL_DRAFTS_FOLDER` (`mail_*`) | Mail; Senden nur mit SMTP-Host | Ports 993/465 |
 | `HA_URL`, `HA_TOKEN` | Home Assistant außerhalb des Add-ons (im Add-on `SUPERVISOR_TOKEN` automatisch) | – |
-| `HA_TRUSTED_ENTITIES` (`ha_trusted_entities`, Liste) | Szenen/Skripte, die ohne Freigabe laufen dürfen, z. B. `scene.abend, script.gute_nacht` | leer |
+| `HA_TRUSTED_ENTITIES` (`ha_trusted_entities`, Liste) | Schalter, Szenen und Skripte, die ohne Freigabe laufen dürfen (nur ohne Zusatzdaten), z. B. `scene.abend, script.gute_nacht, switch.kaffee` | leer |
 
 Gedächtnis: höchstens 500 Zeichen je Notiz und 200 Notizen; im ersten Beitrag eines Gesprächs gehen
 höchstens 30 Notizen bzw. 4000 Zeichen als gekennzeichnete Daten in den Kontext.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-from urllib.parse import urlsplit
+import re
 
 from .config import INGRESS_GATEWAY, Config
 
@@ -38,20 +38,32 @@ def cookie_token(headers) -> str:
     return ""
 
 
-def _host_name(value: str) -> str:
-    """Host header to bare host name (port and IPv6 brackets removed)."""
-    return (urlsplit("//" + value.strip()).hostname or "").lower()
+_LOCAL_HOST = re.compile(r"(127\.0\.0\.1|localhost|\[::1\])(:[0-9]{1,5})?")
+_LOCAL_ORIGIN = re.compile(r"https?://(127\.0\.0\.1|localhost|\[::1\])(:[0-9]{1,5})?")
+START_PAGES = frozenset({"", "index.html"})
+
+
+def _origin_ok(method: str, headers, allowed) -> bool:
+    """For state-changing requests a present Origin must match exactly."""
+    if method not in UNSAFE_METHODS or "origin" not in headers:
+        return True
+    return allowed(headers["origin"])
 
 
 def _local_request_ok(method: str, headers) -> bool:
-    """DNS-rebinding guard for loopback-only mode: Host and (for writes) Origin must be loopback."""
-    if _host_name(headers.get("host", "")) not in LOOPBACK_NAMES:
+    """DNS-rebinding guard for loopback-only mode: exact Host match, and Origin for writes."""
+    if not _LOCAL_HOST.fullmatch(headers.get("host", "")):
         return False
-    if method in UNSAFE_METHODS and "origin" in headers:
-        origin = headers["origin"]
-        if origin == "null" or (urlsplit(origin).hostname or "").lower() not in LOOPBACK_NAMES:
-            return False
-    return True
+    return _origin_ok(method, headers, lambda o: bool(_LOCAL_ORIGIN.fullmatch(o)))
+
+
+def same_origin(headers, origin: str) -> bool:
+    host = headers.get("host", "")
+    return bool(host) and origin in (f"http://{host}", f"https://{host}")
+
+
+def is_start_page(path: str) -> bool:
+    return path.lstrip("/") in START_PAGES
 
 
 def is_allowed(config: Config, client_host: str | None, path: str, headers, query,
@@ -74,9 +86,11 @@ def is_allowed(config: Config, client_host: str | None, path: str, headers, quer
         return True, 200
 
     # Token mode: the API needs the token; static UI files and health are public.
+    if not _origin_ok(method.upper(), headers, lambda o: same_origin(headers, o)):
+        return False, 403
     if not path.startswith("api/") or path in PUBLIC_PATHS:
         return True, 200
-    if token_matches(config, _bearer(headers)) or token_matches(config, query.get("token", "")):
+    if token_matches(config, _bearer(headers)):
         return True, 200
     supplied = cookie_token(headers)
     if supplied and hmac.compare_digest(supplied.encode(), cookie_value(config).encode()):

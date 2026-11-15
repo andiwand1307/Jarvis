@@ -24,7 +24,7 @@ LOCAL = Config.from_env({"JARVIS_HOST": "0.0.0.0"})
     (TOKEN, "192.168.1.20", "/api/status", {"authorization": "Bearer falsch"}, {}, False),
     (TOKEN, "192.168.1.20", "/api/status", {}, {}, False),
     (TOKEN, "127.0.0.1", "/api/chat", {}, {}, False),
-    (TOKEN, "192.168.1.20", "/api/pending", {}, {"token": "geheim"}, True),
+    (TOKEN, "192.168.1.20", "/api/pending", {}, {"token": "geheim"}, False),  # only on the start page
     (TOKEN, "192.168.1.20", "/api/health", {}, {}, True),
     (TOKEN, "192.168.1.20", "/index.html", {}, {}, True),
     (LOCAL, "127.0.0.1", "/api/status", {"host": "127.0.0.1:8099"}, {}, True),
@@ -32,6 +32,10 @@ LOCAL = Config.from_env({"JARVIS_HOST": "0.0.0.0"})
     (LOCAL, "127.0.0.1", "/api/status", {"host": "localhost"}, {}, True),
     (LOCAL, "127.0.0.1", "/api/status", {"host": "evil.example:8099"}, {}, False),
     (LOCAL, "127.0.0.1", "/api/status", {"host": "127.0.0.1.evil.example"}, {}, False),
+    (LOCAL, "127.0.0.1", "/api/status", {"host": "evil.example\\@localhost"}, {}, False),
+    (LOCAL, "127.0.0.1", "/api/status", {"host": "evil.example@localhost"}, {}, False),
+    (LOCAL, "127.0.0.1", "/api/status", {"host": "localhost:8099:1"}, {}, False),
+    (LOCAL, "127.0.0.1", "/api/status", {"host": "LOCALHOST.evil"}, {}, False),
     (LOCAL, "127.0.0.1", "/api/status", {}, {}, False),
     (LOCAL, "192.168.1.20", "/api/status", {}, {}, False),
     (LOCAL, "192.168.1.20", "/", {}, {}, False),
@@ -123,3 +127,34 @@ def test_addon_env_quoting():
     assert "export MAIL_IMAP_PORT=993" in lines
     assert "export JARVIS_WEB_SEARCH=false" in lines
     assert not any("MAIL_USER" in line or "unknown" in line for line in lines)
+
+
+@pytest.mark.parametrize("origin,allowed", [
+    (None, True), ("http://jarvis.lan:8099", True), ("https://jarvis.lan:8099", True),
+    ("http://evil.example", False), ("null", False),
+])
+def test_token_mode_post_origin(origin, allowed):
+    headers = {"host": "jarvis.lan:8099", "authorization": "Bearer geheim"}
+    if origin:
+        headers["origin"] = origin
+    assert is_allowed(TOKEN, "192.168.1.20", "/api/chat", headers, {}, "POST")[0] is allowed
+
+
+@pytest.mark.parametrize("origin", ["http://127.0.0.1.evil.example", "http://evil.example\\@127.0.0.1",
+                                    "http://127.0.0.1@evil.example"])
+def test_local_origin_exact(origin):
+    headers = {"host": "127.0.0.1:8099", "origin": origin}
+    assert is_allowed(LOCAL, "127.0.0.1", "/api/chat", headers, {}, "POST")[0] is False
+
+
+def test_token_query_only_on_start_page(make_client, tmp_path):
+    cfg = Config.from_env({"JARVIS_TOKEN": "geheim", "JARVIS_DATA_DIR": str(tmp_path)})
+    c = make_client(cfg=cfg, client_host="192.168.1.9")
+    assert c.get("api/conversations?token=geheim").status_code == 401
+    assert c.get("/style.css?token=geheim", follow_redirects=False).status_code != 303
+    assert c.get("/?token=geheim", follow_redirects=False).status_code == 303
+
+
+@pytest.mark.parametrize("path", ["/%00", "/a%0d%0ab", "/api/%7f"])
+def test_control_characters_in_path_are_400(make_client, path):
+    assert make_client().get(path).status_code == 400

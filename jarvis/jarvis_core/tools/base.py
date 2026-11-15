@@ -28,6 +28,10 @@ class ToolError(Exception):
     """Expected failure that is reported back to the model as a tool error."""
 
 
+class OutcomeUnknown(ToolError):
+    """The request left this machine but no reliable answer came back: it may have taken effect."""
+
+
 def max_risk(*levels: str) -> str:
     return max(levels, key=lambda r: _RISK_ORDER.get(r, 2))
 
@@ -114,6 +118,11 @@ def validate_input(schema: dict, value: Any, path: str = "input") -> list[str]:
             errors.append(f"{path}: ungültiges Format")
         if "maxLength" in schema and len(value) > schema["maxLength"]:
             errors.append(f"{path}: zu lang (max. {schema['maxLength']} Zeichen)")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if "minimum" in schema and value < schema["minimum"]:
+            errors.append(f"{path}: mindestens {schema['minimum']}")
+        if "maximum" in schema and value > schema["maximum"]:
+            errors.append(f"{path}: höchstens {schema['maximum']}")
     if "enum" in schema and value not in schema["enum"]:
         errors.append(f"{path}: muss einer von {schema['enum']} sein")
     if isinstance(value, dict):
@@ -170,3 +179,14 @@ def readable(result: Any) -> str:
         return result["message"]
     import json
     return "Ausgeführt: " + json.dumps(result, ensure_ascii=False, default=str)[:500]
+
+
+def bounded_int(value: Any, low: int, high: int, what: str, default: int | None = None) -> int | None:
+    """Handler-side range check with a readable error (no OverflowError on huge numbers)."""
+    if value is None:
+        return default
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ToolError(f"{what} muss eine ganze Zahl sein.")
+    if not low <= value <= high:
+        raise ToolError(f"{what} muss zwischen {low} und {high} liegen.")
+    return value

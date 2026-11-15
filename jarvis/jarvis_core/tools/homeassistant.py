@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable
@@ -10,31 +11,34 @@ from urllib.parse import quote
 import httpx
 
 from ..config import HAConfig
-from .base import CONFIRM, HA_ENTITY, HA_IDENT, READ, WRITE, Registry, Tool, ToolError, require
+from .base import (CONFIRM, HA_ENTITY, HA_IDENT, READ, WRITE, OutcomeUnknown, Registry, Tool, ToolError,
+                   bounded_int, require)
 
 # Positive list (architecture doc, section 4): only these (domain, service) pairs can be `write`,
 # and only when every target is an entity_id of that same domain. Everything else is `confirm`.
-# `switch` is on the list although a switch can drive something sensitive (a socket, a door
-# opener relay); such switches belong behind a lock/cover entity or should not be exposed.
 SAFE_SERVICES: dict[str, frozenset[str]] = {
     "light": frozenset({"turn_on", "turn_off", "toggle"}),
-    "switch": frozenset({"turn_on", "turn_off", "toggle"}),
     "fan": frozenset({"turn_on", "turn_off", "toggle", "set_percentage", "increase_speed",
                       "decrease_speed", "oscillate", "set_direction", "set_preset_mode"}),
+    # Playback control and volume only; nothing that starts content, URLs, sources or apps.
     "media_player": frozenset({"turn_on", "turn_off", "toggle", "volume_up", "volume_down", "volume_set",
                                "volume_mute", "media_play", "media_pause", "media_play_pause", "media_stop",
-                               "media_next_track", "media_previous_track", "media_seek", "select_source",
-                               "select_sound_mode", "shuffle_set", "repeat_set", "play_media"}),
+                               "media_next_track", "media_previous_track", "media_seek", "shuffle_set",
+                               "repeat_set"}),
     "climate": frozenset({"turn_on", "turn_off", "set_temperature", "set_hvac_mode", "set_preset_mode",
                           "set_fan_mode", "set_humidity", "set_swing_mode"}),
 }
-# Scenes and scripts can switch anything; only entities the user listed in HA_TRUSTED_ENTITIES
-# may run without approval, and only through these services.
+# Scenes, scripts and switches can drive anything (a switch may be a door relay). Only entities
+# the user listed in HA_TRUSTED_ENTITIES run without approval, only via these services and only
+# without extra service data (no script variables, no scene entities).
 TRUSTED_SERVICES: dict[str, frozenset[str]] = {
     "scene": frozenset({"turn_on"}),
     "script": frozenset({"turn_on"}),
+    "switch": frozenset({"turn_on", "turn_off", "toggle"}),
 }
 TARGET_KEYS = ("entity_id", "area_id", "device_id", "floor_id", "label_id")
+# Any data key that looks like a target selector (also misspelled/plural) counts as unresolved.
+_TARGET_LIKE = re.compile(r"^(target|(area|device|floor|label)s?(_?ids?)?)$", re.I)
 
 _IDENT = re.compile(HA_IDENT.strip("^$"))
 _ENTITY = re.compile(HA_ENTITY.strip("^$"))
@@ -44,62 +48,82 @@ MAX_STATES = 150
 def _as_list(value: Any) -> list | None:
     if value is None:
         return []
+    values = [value] if isinstance(value, str) else value
+    if not isinstance(values, list) or not all(isinstance(v, str) for v in values):
+        return None  # malformed
+    if any(re.search(r"[\x00-\x1f\x7f]", v) for v in values):
+        return None
     if isinstance(value, str):
         return [v.strip() for v in value.split(",") if v.strip()]
-    if isinstance(value, list) and all(isinstance(v, str) for v in value):
-        return list(value)
-    return None  # malformed
+    return [v.strip() for v in values]
 
 
-def collect_targets(inp: dict) -> tuple[list[str], bool]:
-    """(entity_ids, only_entities). `only_entities` is False when any area/device/floor/label
-    target is present or a target has an unexpected shape."""
+def build_request(inp: dict) -> tuple[str, str, dict, dict]:
+    """(domain, service, target, data) exactly as sent: body = {**data, **target}.
+
+    Raises ToolError for malformed input: bad names, bad entity ids, data that is not an
+    object, or a target given in more than one place."""
+    domain = require(HA_IDENT, inp.get("domain"), "Domain")
+    service = require(HA_IDENT, inp.get("service"), "Dienstname")
     data = inp.get("data")
-    if data is not None and not isinstance(data, dict):
-        return [], False
-    data = data or {}
-    sources = [inp, data]
+    if data is None:
+        data = {}
+    if not isinstance(data, dict):
+        raise ToolError("data muss ein Objekt sein.")
+    data = dict(data)
+    target: dict[str, Any] = {}
+    places = 0
+    if "entity_id" in inp:
+        places += 1
+        target["entity_id"] = inp["entity_id"]
     if "target" in data:
-        if not isinstance(data["target"], dict):
-            return [], False
-        sources.append(data["target"])
-    entities: list[str] = []
-    only_entities = True
-    for src in sources:
-        for key in TARGET_KEYS:
-            if key not in src:
-                continue
-            values = _as_list(src[key])
-            if values is None:
-                return [], False
-            if key == "entity_id":
-                entities.extend(values)
-            elif values:
-                only_entities = False
-    return entities, only_entities
+        places += 1
+        nested = data.pop("target")
+        if not isinstance(nested, dict):
+            raise ToolError("data.target muss ein Objekt sein.")
+        target.update(nested)
+    selectors = {k: data.pop(k) for k in list(data) if k == "entity_id" or _TARGET_LIKE.match(k)}
+    if selectors:
+        places += 1
+        target.update(selectors)
+    if places > 1:
+        raise ToolError("Ziel bitte nur an einer Stelle angeben (entity_id oben ODER in data).")
+    if "entity_id" in target:
+        ids = _as_list(target["entity_id"])
+        if ids is None or not ids:
+            raise ToolError("Ungültige entity_id.")
+        for eid in ids:
+            if eid != "all":
+                require(HA_ENTITY, eid, "entity_id")
+        target["entity_id"] = ids
+    return domain, service, target, data
 
 
 def service_risk(inp: dict, trusted: Iterable[str] = ()) -> str:
-    domain, service = inp.get("domain"), inp.get("service")
-    if not isinstance(domain, str) or not isinstance(service, str):
+    try:
+        domain, service, target, data = build_request(inp)
+    except ToolError:
         return CONFIRM
-    if not _IDENT.fullmatch(domain) or not _IDENT.fullmatch(service):
-        return CONFIRM
-    entities, only_entities = collect_targets(inp)
-    if not only_entities or not all(_ENTITY.fullmatch(e) for e in entities):
+    if set(target) - {"entity_id"}:
+        return CONFIRM  # area/device/floor/label: unresolved
+    entities = target.get("entity_id", [])
+    if "all" in entities:
         return CONFIRM
     trusted = set(trusted)
 
-    if domain == "script" and service not in TRUSTED_SERVICES["script"] and service != "reload":
-        # script.<name> runs that script directly.
-        return WRITE if f"script.{service}" in trusted and not entities else CONFIRM
+    if domain == "script" and service not in TRUSTED_SERVICES["script"]:
+        # script.<name> runs that script directly; never with data (variables).
+        if service in ("reload", "turn_off", "toggle") or entities or data:
+            return CONFIRM
+        return WRITE if f"script.{service}" in trusted else CONFIRM
     if not entities:
         return CONFIRM
+    if any(e.split(".", 1)[0] != domain for e in entities):
+        return CONFIRM
     if service in SAFE_SERVICES.get(domain, ()):
-        return WRITE if all(e.split(".", 1)[0] == domain for e in entities) else CONFIRM
+        return WRITE
     if service in TRUSTED_SERVICES.get(domain, ()):
-        ok = all(e.split(".", 1)[0] == domain and e in trusted for e in entities)
-        return WRITE if ok else CONFIRM
+        return WRITE if not data and all(e in trusted for e in entities) else CONFIRM
     return CONFIRM
 
 
@@ -117,12 +141,23 @@ class HAClient:
         ) as client:
             try:
                 resp = await client.request(method, path, **kwargs)
-            except httpx.HTTPError as exc:
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.PoolTimeout, httpx.UnsupportedProtocol) as exc:
                 raise ToolError(f"Home Assistant nicht erreichbar: {exc}") from exc
+            except httpx.HTTPError as exc:
+                # Sent (at least partly) but no answer: it may have taken effect.
+                if method == "GET":
+                    raise ToolError(f"Home Assistant antwortet nicht: {exc}") from exc
+                raise OutcomeUnknown(
+                    "Ergebnis unbekannt: Die Anfrage wurde gesendet, aber Home Assistant hat nicht "
+                    "geantwortet. Nicht erneut senden, erst den Zustand nachsehen.") from exc
         if resp.status_code in (401, 403):
             raise ToolError("Home Assistant lehnt den Zugang ab.")
         if resp.status_code == 404:
             raise ToolError("In Home Assistant nicht gefunden.")
+        if resp.status_code >= 500 and method != "GET":
+            raise OutcomeUnknown(
+                f"Ergebnis unbekannt: Home Assistant meldet Fehler {resp.status_code}. Der Dienst kann "
+                "teilweise gelaufen sein. Nicht erneut senden, erst den Zustand nachsehen.")
         if resp.status_code >= 400:
             raise ToolError(f"Home-Assistant-Fehler {resp.status_code}: {resp.text[:200]}")
         return resp.json() if resp.content else None
@@ -147,18 +182,22 @@ def _compact_state(s: Any) -> dict:
 
 
 def _summary(inp: dict) -> tuple[str, dict]:
-    service = f"{inp.get('domain')}.{inp.get('service')}"
-    entities, _ = collect_targets(inp)
-    data = inp.get("data") if isinstance(inp.get("data"), dict) else {}
-    others = {k: data[k] for k in TARGET_KEYS[1:] if k in data}
-    target = ", ".join(entities) if entities else (", ".join(f"{k}={v}" for k, v in others.items()) or "ohne Ziel")
-    details = {
-        "domain": inp.get("domain"),
-        "service": inp.get("service"),
-        "entity_id": inp.get("entity_id", []),
-        "data": inp.get("data") or {},
-    }
-    return f"Home Assistant: {service} für {target}", details
+    """Card text and details built from exactly the request that will be sent."""
+    try:
+        domain, service, target, data = build_request(inp)
+    except ToolError as exc:
+        return f"Home Assistant: ungültiger Aufruf ({exc})", {"input": inp}
+    parts = []
+    for key, value in target.items():
+        if key == "entity_id":
+            parts.append(", ".join(value))
+        else:
+            parts.append(f"{key} {value if isinstance(value, str) and value.strip() else json.dumps(value)}")
+    details = {"domain": domain, "service": service, "target": target, "data": data,
+               "body": {**data, **target}}
+    if not parts:
+        return f"Home Assistant: {domain}.{service} (ohne Ziel)", details
+    return f"Home Assistant: {domain}.{service} für {'; '.join(parts)}", details
 
 
 def register(registry: Registry, cfg: HAConfig, transport: httpx.AsyncBaseTransport | None = None) -> None:
@@ -186,14 +225,8 @@ def register(registry: Registry, cfg: HAConfig, transport: httpx.AsyncBaseTransp
         return {"count": len(hits), "truncated": truncated, "states": hits[:MAX_STATES]}
 
     async def call_service(inp: dict) -> dict:
-        domain = require(HA_IDENT, inp.get("domain"), "Domain")
-        service = require(HA_IDENT, inp.get("service"), "Dienstname")
-        body = dict(inp.get("data") or {})
-        targets = _as_list(inp.get("entity_id"))
-        if targets is None:
-            raise ToolError("Ungültige entity_id.")
-        if targets:
-            body["entity_id"] = targets
+        domain, service, target, data = build_request(inp)
+        body = {**data, **target}
         changed = await client.request("POST", f"/services/{_seg(domain)}/{_seg(service)}", json=body)
         changed = changed if isinstance(changed, list) else []
         return {"ok": True, "service": f"{domain}.{service}", "message": f"{domain}.{service} ausgeführt.",
@@ -206,8 +239,9 @@ def register(registry: Registry, cfg: HAConfig, transport: httpx.AsyncBaseTransp
             if inp.get("end"):
                 end = datetime.fromisoformat(inp["end"].replace("Z", "+00:00")).isoformat(timespec="seconds")
             else:
-                end = (start_dt + timedelta(days=int(inp.get("days") or 7))).isoformat(timespec="seconds")
-        except ValueError as exc:
+                days = bounded_int(inp.get("days"), 1, 366, "days", default=7)
+                end = (start_dt + timedelta(days=days)).isoformat(timespec="seconds")
+        except (ValueError, OverflowError) as exc:
             raise ToolError("Ungültiges Datum (ISO 8601 erwartet).") from exc
         start = start_dt.isoformat(timespec="seconds")
         if inp.get("entity_id"):
@@ -258,10 +292,11 @@ def register(registry: Registry, cfg: HAConfig, transport: httpx.AsyncBaseTransp
         area="homeassistant",
         description=(
             "Ruft einen Home-Assistant-Dienst auf, z. B. domain 'light', service 'turn_on', entity_id "
-            "'light.wohnzimmer'. Gib Ziele immer als entity_id an. Sofort laufen nur Standarddienste von "
-            "Licht, Schaltern, Ventilatoren, Medienplayern und Heizung auf Entitäten derselben Domain sowie "
-            "vom Nutzer freigeschaltete Szenen und Skripte. Alles andere (Schlösser, Alarm, Rollläden, "
-            "Garagentore, Bereiche/Geräte als Ziel, unbekannte Dienste) braucht eine Freigabe durch den "
+            "'light.wohnzimmer'. Gib das Ziel genau einmal an, als entity_id oben. Sofort laufen nur "
+            "Licht, Ventilatoren, Heizung, Wiedergabe-Steuerung und Lautstärke von Medienplayern auf "
+            "Entitäten derselben Domain sowie vom Nutzer freigeschaltete Schalter, Szenen und Skripte ohne "
+            "Zusatzdaten. Alles andere (Schlösser, Alarm, Rollläden, Garagentore, andere Schalter, Medien "
+            "abspielen, Bereiche/Geräte als Ziel, unbekannte Dienste) braucht eine Freigabe durch den "
             "Nutzer in der Oberfläche."
         ),
         input_schema={
@@ -273,7 +308,7 @@ def register(registry: Registry, cfg: HAConfig, transport: httpx.AsyncBaseTransp
                     "anyOf": [{"type": "string"}, {"type": "array", "items": {"type": "string"}}],
                     "description": "Ziel-Entität(en).",
                 },
-                "data": {"type": "object", "description": "Weitere Dienstdaten, z. B. brightness_pct."},
+                "data": {"type": ["object", "null"], "description": "Weitere Dienstdaten, z. B. brightness_pct."},
             },
             "required": ["domain", "service"],
             "additionalProperties": False,
@@ -283,6 +318,7 @@ def register(registry: Registry, cfg: HAConfig, transport: httpx.AsyncBaseTransp
         label="Steuere Home Assistant …",
         kind="ha_service",
         summarize=_summary,
+        precheck=lambda inp: build_request(inp) and None,
     ))
     registry.register(Tool(
         name="ha_calendar_events",
@@ -299,7 +335,7 @@ def register(registry: Registry, cfg: HAConfig, transport: httpx.AsyncBaseTransp
                               "description": "z. B. calendar.familie"},
                 "start": {"type": "string"},
                 "end": {"type": "string"},
-                "days": {"type": "integer"},
+                "days": {"type": "integer", "minimum": 1, "maximum": 366},
             },
             "additionalProperties": False,
         },

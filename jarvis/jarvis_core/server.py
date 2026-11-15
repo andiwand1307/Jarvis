@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from .agent import Agent
 from .config import Config
 from .llm import LLM, AnthropicLLM
-from .security import COOKIE_NAME, cookie_value, is_allowed, token_matches
+from .security import COOKIE_NAME, cookie_value, is_allowed, is_start_page, token_matches
 from .store import Store
 from .tools import Registry, build_registry
 
@@ -25,10 +25,41 @@ log = logging.getLogger("jarvis.server")
 _BACKGROUND: set[asyncio.Task] = set()
 
 
+MAX_MESSAGE = 20000
+
+
 class ChatRequest(BaseModel):
-    message: str = Field(..., max_length=20000)
+    message: str = Field(..., max_length=MAX_MESSAGE)
     conversation_id: str | None = None
     channel: str = "web"
+
+
+_FIELD_NAMES = {"message": "Nachricht", "conversation_id": "Gesprächs-ID", "channel": "Kanal", "limit": "limit"}
+
+
+def german_validation(errors: list[dict]) -> str:
+    """Readable German text for request validation errors (no Pydantic English)."""
+    parts = []
+    for err in errors:
+        loc = [str(p) for p in err.get("loc", ()) if p not in ("body", "query", "path")]
+        field = _FIELD_NAMES.get(loc[-1], loc[-1]) if loc else ""
+        kind = err.get("type", "")
+        if kind == "missing":
+            parts.append(f"Das Feld „{field}“ fehlt." if field else "Es fehlen Angaben.")
+        elif kind == "string_too_long" and field == "Nachricht":
+            limit = f"{MAX_MESSAGE:,}".replace(",", " ")
+            parts.append(f"Die Nachricht ist zu lang (höchstens {limit} Zeichen).")
+        elif kind == "string_too_long":
+            parts.append(f"„{field}“ ist zu lang.")
+        elif kind.startswith("string_type"):
+            parts.append(f"„{field}“ muss Text sein.")
+        elif kind in ("json_invalid", "model_attributes_type", "dict_type"):
+            parts.append("Der Inhalt der Anfrage ist kein gültiges JSON-Objekt.")
+        elif kind.startswith("int") or kind in ("greater_than_equal", "less_than_equal"):
+            parts.append(f"„{field}“ muss eine Zahl im erlaubten Bereich sein.")
+        else:
+            parts.append(f"Ungültige Angabe{f' in „{field}“' if field else ''}.")
+    return " ".join(dict.fromkeys(parts)) or "Ungültige Anfrage."
 
 
 def sse(kind: str, data: dict) -> bytes:
@@ -48,6 +79,9 @@ class AccessMiddleware:
         query = dict(pairs)
         client = scope.get("client")
         path = scope.get("path", "")
+        if any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in path):
+            response = JSONResponse({"ok": False, "error": "Ungültiger Pfad."}, status_code=400)
+            return await response(scope, receive, send)
         allowed, status = is_allowed(self.config, client[0] if client else None, path, headers, query,
                                      scope.get("method", "GET"))
         if not allowed:
@@ -55,7 +89,7 @@ class AccessMiddleware:
             extra = {"WWW-Authenticate": "Bearer"} if status == 401 else None
             response = JSONResponse({"ok": False, "error": message}, status_code=status, headers=extra)
             return await response(scope, receive, send)
-        if (self.config.access_mode == "token" and not path.lstrip("/").startswith("api/")
+        if (self.config.access_mode == "token" and is_start_page(path)
                 and token_matches(self.config, query.get("token", ""))):
             # Opening the UI once with ?token=… stores a derived value in a cookie and
             # redirects to the same address without the token.
@@ -90,11 +124,7 @@ def create_app(
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(_request: Request, exc: RequestValidationError) -> JSONResponse:
-        parts = []
-        for err in exc.errors():
-            loc = ".".join(str(p) for p in err.get("loc", ()) if p != "body")
-            parts.append(f"{loc}: {err.get('msg', 'ungültig')}" if loc else str(err.get("msg", "ungültig")))
-        return JSONResponse({"ok": False, "detail": "Ungültige Anfrage – " + "; ".join(parts)}, status_code=422)
+        return JSONResponse({"ok": False, "detail": german_validation(exc.errors())}, status_code=422)
 
     @app.get("/api/health")
     async def health() -> dict:
@@ -145,8 +175,8 @@ def create_app(
         outcome = await agent.approve(pid)
         if outcome is None:
             return JSONResponse({"ok": False, "result": "Keine offene Aktion mit dieser ID."}, status_code=404)
-        ok, result = outcome
-        return JSONResponse({"ok": ok, "result": result})
+        status, result = outcome
+        return JSONResponse({"ok": status == "done", "status": status, "result": result})
 
     @app.post("/api/pending/{pid}/reject")
     async def reject(pid: str) -> JSONResponse:
@@ -171,36 +201,34 @@ def create_app(
 
 
 async def _stream(agent: Agent, cid: str | None, text: str, channel: str) -> AsyncIterator[bytes]:
-    """Runs the agent in its own task. If the client goes away, the run is cancelled at the
-    next safe point (before the next model call or tool), keeping the history valid."""
+    """Runs the agent in its own task. A dropped connection (phone asleep, reload) does not stop
+    the run: it finishes on the server and is stored; events are discarded once nobody listens.
+    Only POST api/conversations/{id}/cancel stops a run."""
     queue: asyncio.Queue[Any] = asyncio.Queue()
     sentinel = object()
-    started: dict[str, str] = {}
+    listening = {"on": True}
 
     async def produce() -> None:
         try:
             async for ev in agent.run(cid, text, channel):
-                if ev["type"] == "start":
-                    started["cid"] = ev["data"]["conversation_id"]
-                await queue.put(ev)
+                if listening["on"]:
+                    queue.put_nowait(ev)
         except Exception:  # noqa: BLE001
             log.exception("chat stream failed")
-            await queue.put({"type": "error", "data": {"message": "Interner Fehler."}})
-            await queue.put({"type": "done", "data": {}})
+            if listening["on"]:
+                queue.put_nowait({"type": "error", "data": {"message": "Interner Fehler."}})
+                queue.put_nowait({"type": "done", "data": {}})
         finally:
-            await queue.put(sentinel)
+            queue.put_nowait(sentinel)
 
     task = asyncio.create_task(produce())
     _BACKGROUND.add(task)
     task.add_done_callback(_BACKGROUND.discard)
-    finished = False
     try:
         while True:
             ev = await queue.get()
             if ev is sentinel:
-                finished = True
                 break
             yield sse(ev["type"], ev["data"])
     finally:
-        if not finished and started.get("cid"):
-            agent.cancel(started["cid"])
+        listening["on"] = False

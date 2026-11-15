@@ -116,7 +116,7 @@ def test_tool_and_pending_events(make_client, calls):
     assert events[1][1] == {"name": "t_read", "label": "Lese …", "status": "running"}
     assert events[2][1]["status"] == "done"
     pending = events[5][1]
-    assert set(pending) == {"id", "kind", "summary", "details"}
+    assert set(pending) == {"id", "kind", "summary", "details", "created_at"}
     assert pending["kind"] == "test_kind"
 
     listed = c.get("api/pending").json()
@@ -127,7 +127,7 @@ def test_tool_and_pending_events(make_client, calls):
     resp = c.post(f"api/pending/{pending['id']}/approve")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["ok"] is True and body["result"] == "Erledigt: 2"
+    assert body == {"ok": True, "status": "done", "result": "Erledigt: 2"}
     assert calls.items == [{"x": "1"}, {"x": "2"}]
     assert c.post(f"api/pending/{pending['id']}/approve").status_code == 404
     assert c.get("api/pending").json() == []
@@ -173,10 +173,12 @@ def test_stop_reasons(make_client, calls):
     # pause_turn: the paused content is sent back and the turn continues.
     paused = {"content": [{"type": "server_tool_use", "id": "srv1", "name": "web_search", "input": {"query": "x"}}],
               "stop_reason": "pause_turn"}
-    llm.add(paused, text_turn("Fertig."))
+    llm.add(paused, {"content": [{"type": "web_search_tool_result", "tool_use_id": "srv1", "content": []},
+                                 {"type": "text", "text": "Fertig."}], "stop_reason": "end_turn"})
     events = chat(c, "c")
-    assert [e[0] for e in events] == ["start", "tool", "text", "done"]
+    assert [e[0] for e in events] == ["start", "tool", "tool", "text", "done"]
     assert events[1][1] == {"name": "web_search", "label": "Suche im Web …", "status": "running"}
+    assert events[2][1]["status"] == "done"
     assert llm.calls[-1]["messages"][-1] == {"role": "assistant", "content": paused["content"]}
 
 
