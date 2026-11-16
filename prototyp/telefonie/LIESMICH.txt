@@ -1,0 +1,14 @@
+Telefonie-Prototypen für Jarvis (nur Versuchsstand, nichts davon liegt im Repo)
+
+minisip.py                      Mini-SIP/RTP-Stack (asyncio, nur numpy): REGISTER/Digest, Rufe ein/aus, G.711, DTMF
+voice_loop.py                   Gesprächsführung: Silero-VAD, Satzschnitt, Zustände, Barge-in, Füllsignal
+fritzbox_probe.py               Vor-Ort-Probe an der echten Fritzbox (siehe Kopfkommentar)
+Dockerfile.pjsua2-fragment      Build-Stufe für pjsua2/Python 3.13 (als Dockerfile ungetestet, Befehle einzeln gelaufen)
+fritzdouble/etc/                Asterisk-Konfiguration als Fritzbox-Ersatz (Registrar 127.0.0.1:5060, Nebenstellen 620/621)
+test_minisip_loopback.py        -> ergebnis_minisip.json
+test_pjsua2_loopback.py         -> ergebnis_pjsua2_8000.json (braucht LD_LIBRARY_PATH=/opt/pj/lib und PYTHONPATH=<build>/pjmod)
+test_audiosocket_and_timer.py   -> ergebnis_audiosocket_timer.json
+test_voice_loop.py              -> ergebnis_voice_loop.json (STT und Claude sind Attrappen mit festen Zeiten)
+
+Double starten:  asterisk -C /tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/fritzdouble/etc/asterisk.conf -f &
+Pakete:          apt-get install asterisk asterisk-modules sox espeak-ng ; pip install numpy pysilero-vad

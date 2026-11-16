@@ -1,0 +1,772 @@
+[Nov 16 05:51:21] Asterisk 20.6.0~dfsg+~cs6.13.40431414-2build5 built by nobody @ buildd.debian.org on a unknown running Linux on 2024-04-15 00:13:12 UTC
+[Nov 16 05:51:21] VERBOSE[7733] message.c: Message handler 'dialplan' registered.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'MESSAGE'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'MESSAGE_DATA'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'MessageSend'
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action MessageSend
+[Nov 16 05:51:21] VERBOSE[7733] channel.c: Registered channel type 'Surrogate' (Surrogate channel used to pull channel from an application)
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action BridgeTechnologyList
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action BridgeTechnologySuspend
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action BridgeTechnologyUnsuspend
+[Nov 16 05:51:21] VERBOSE[7733] dns_core.c: Registered DNS resolver 'system' with priority '2147483647'
+[Nov 16 05:51:21] VERBOSE[7733] pbx.c: Asterisk PBX Core Initializing
+[Nov 16 05:51:21] VERBOSE[7733] pbx.c: Registering builtin functions:
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'EXCEPTION'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'TESTTIME'
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action ShowDialPlan
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action ExtensionStateList
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Answer'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'BackGround'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Busy'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Congestion'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'ExecIfTime'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Goto'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'GotoIf'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'GotoIfTime'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'ImportVar'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Hangup'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Incomplete'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'NoOp'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Proceeding'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Progress'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'RaiseException'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Ringing'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'SayAlpha'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'SayAlphaCase'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'SayDigits'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'SayMoney'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'SayNumber'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'SayOrdinal'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'SayPhonetic'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'SetAMAFlags'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Wait'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'WaitDigit'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'WaitExten'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Set'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'MSet'
+[Nov 16 05:51:21] VERBOSE[7733] channel.c: Registered channel type 'Local' (Local Proxy Channel Driver)
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action LocalOptimizeAway
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Asterisk Dynamic Loader Starting:
+[Nov 16 05:51:21] NOTICE[7733] loader.c: 68 modules will be loaded.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading logger.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: logger => (Logger)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading extconfig.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: extconfig => (Configuration)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_sorcery_config.so.
+[Nov 16 05:51:21] VERBOSE[7733] sorcery.c: Sorcery registered wizard 'config'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_sorcery_config.so => (Sorcery Configuration File Object Wizard)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_sorcery_memory.so.
+[Nov 16 05:51:21] VERBOSE[7733] sorcery.c: Sorcery registered wizard 'memory'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_sorcery_memory.so => (Sorcery In-Memory Object Wizard)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_sorcery_astdb.so.
+[Nov 16 05:51:21] VERBOSE[7733] sorcery.c: Sorcery registered wizard 'astdb'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_sorcery_astdb.so => (Sorcery Astdb Object Wizard)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading udptl.
+[Nov 16 05:51:21] ERROR[7733] config_options.c: Unable to load config file 'udptl.conf'
+[Nov 16 05:51:21] NOTICE[7733] udptl.c: Could not load udptl config; using defaults
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: udptl => (UDPTL)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading plc.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: plc => (PLC)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading acl.
+[Nov 16 05:51:21] ERROR[7733] config_options.c: Unable to load config file 'acl.conf'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: acl => (Named ACL system)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading http.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: http => (Built-in HTTP Server)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading manager.
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Ping
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Events
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Logoff
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Login
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Challenge
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Hangup
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Status
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Setvar
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Getvar
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action GetConfig
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action GetConfigJSON
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action UpdateConfig
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action CreateConfig
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action ListCategories
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Redirect
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Atxfer
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action CancelAtxfer
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Originate
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Command
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action ExtensionState
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PresenceState
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action AbsoluteTimeout
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action MailboxStatus
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action MailboxCount
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action ListCommands
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action SendText
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action UserEvent
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action WaitEvent
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action CoreSettings
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action CoreStatus
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Reload
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action LoggerRotate
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action CoreShowChannels
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action CoreShowChannelMap
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action ModuleLoad
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action ModuleCheck
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action AOCMessage
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Filter
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action BlindTransfer
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'AMI_CLIENT'
+[Nov 16 05:51:21] NOTICE[7733] manager.c: Unable to open AMI configuration manager.conf, or configuration is invalid.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: manager => (Asterisk Manager Interface)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading indications.
+[Nov 16 05:51:21] WARNING[7733] indications.c: Can't find indications config file indications.conf.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: indications => (Indication Tone Handling)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading features.
+[Nov 16 05:51:21] ERROR[7733] config_options.c: Unable to load config file 'features.conf'
+[Nov 16 05:51:21] NOTICE[7733] features_config.c: Could not load features config; using defaults
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'FEATURE'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'FEATUREMAP'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Bridge'
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action Bridge
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: features => (Call Features)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading enum.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: enum => (ENUM Support)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading dsp.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: dsp => (DSP)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading dnsmgr.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: dnsmgr => (DNS Manager)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading cel.
+[Nov 16 05:51:21] ERROR[7733] config_options.c: Unable to load config file 'cel.conf'
+[Nov 16 05:51:21] NOTICE[7733] cel.c: Failed to process CEL configuration; using defaults
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: cel => (CEL Engine)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading cdr.
+[Nov 16 05:51:21] ERROR[7733] config_options.c: Unable to load config file 'cdr.conf'
+[Nov 16 05:51:21] NOTICE[7733] cdr.c: Failed to process CDR configuration; using defaults
+[Nov 16 05:51:21] NOTICE[7733] cdr.c: CDR simple logging enabled.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: cdr => (CDR Engine)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading ccss.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'CallCompletionRequest'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'CallCompletionCancel'
+[Nov 16 05:51:21] WARNING[7733] ccss.c: Could not find valid ccss.conf file. Using cc_max_requests default
+[Nov 16 05:51:21] WARNING[7733] ccss.c: Could not find valid ccss.conf file. Using cc_[state]_devstate defaults
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: ccss => (Call Completion Supplementary Services)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_timing_timerfd.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_timing_timerfd.so => (Timerfd Timing Interface)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjproject.so.
+[Nov 16 05:51:21] ERROR[7733] res_sorcery_config.c: Unable to load config file 'pjproject.conf'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjproject.so => (PJPROJECT Log and Utility Support)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip.so.
+[Nov 16 05:51:21] VERBOSE[7733] res_pjsip.c: Local IPv4 address determined to be: 192.0.2.2
+[Nov 16 05:51:21] VERBOSE[7733] res_pjsip.c: Local IPv6 address determined to be: ::1
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowEndpoints
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowEndpoint
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowAuths
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowAors
+[Nov 16 05:51:21] VERBOSE[7765] res_pjsip/pjsip_resolver.c: 'UDP+IPv4' is an available SIP transport
+[Nov 16 05:51:21] VERBOSE[7765] res_pjsip/pjsip_resolver.c: 'TCP+IPv4' is not an available SIP transport, disabling resolver support for it
+[Nov 16 05:51:21] VERBOSE[7765] res_pjsip/pjsip_resolver.c: 'TLS+IPv4' is not an available SIP transport, disabling resolver support for it
+[Nov 16 05:51:21] VERBOSE[7765] res_pjsip/pjsip_resolver.c: 'UDP+IPv6' is not an available SIP transport, disabling resolver support for it
+[Nov 16 05:51:21] VERBOSE[7765] res_pjsip/pjsip_resolver.c: 'TCP+IPv6' is not an available SIP transport, disabling resolver support for it
+[Nov 16 05:51:21] VERBOSE[7765] res_pjsip/pjsip_resolver.c: 'TLS+IPv6' is not an available SIP transport, disabling resolver support for it
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPQualify
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowContacts
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip.so => (Basic SIP resource)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_authenticator_digest.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_authenticator_digest.so => (PJSIP authentication resource)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_endpoint_identifier_user.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_endpoint_identifier_user.so => (PJSIP username endpoint identifier)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_registrar.so.
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowRegistrationsInbound
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowRegistrationInboundContactStatuses
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_registrar.so => (PJSIP Registrar Support)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_outbound_authenticator_digest.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_outbound_authenticator_digest.so => (PJSIP authentication resource)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_pubsub.so.
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowSubscriptionsInbound
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowSubscriptionsOutbound
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowResourceLists
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_pubsub.so => (PJSIP event resource)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_audiosocket.so.
+[Nov 16 05:51:21] VERBOSE[7733] res_audiosocket.c: Loading AudioSocket Support module
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_audiosocket.so => (AudioSocket support)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_musiconhold.so.
+[Nov 16 05:51:21] WARNING[7733] res_musiconhold.c: No music on hold classes configured, disabling music on hold.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'MusicOnHold'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'StartMusicOnHold'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'StopMusicOnHold'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_musiconhold.so => (Music On Hold Resource)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_rtp_asterisk.so.
+[Nov 16 05:51:21] VERBOSE[7733] rtp_engine.c: Registered RTP engine 'asterisk'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_rtp_asterisk.so => (Asterisk RTP Stack)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_session.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_session.so => (PJSIP Session resource)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_sdp_rtp.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_sdp_rtp.so => (PJSIP SDP RTP/AVP stream handler)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading chan_pjsip.so.
+[Nov 16 05:51:21] VERBOSE[7733] rtp_engine.c: Registered RTP glue 'PJSIP'
+[Nov 16 05:51:21] VERBOSE[7733] channel.c: Registered channel type 'PJSIP' (PJSIP Channel Driver)
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'PJSIP_DIAL_CONTACTS'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'PJSIP_PARSE_URI'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'PJSIP_MEDIA_OFFER'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'PJSIP_DTMF_MODE'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'PJSIP_MOH_PASSTHROUGH'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'PJSIP_SEND_SESSION_REFRESH'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'PJSIPHangup'
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPHangup
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: chan_pjsip.so => (PJSIP Channel Driver)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading chan_audiosocket.so.
+[Nov 16 05:51:21] VERBOSE[7733] channel.c: Registered channel type 'AudioSocket' (AudioSocket Channel Driver)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: chan_audiosocket.so => (AudioSocket Channel)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_audiosocket.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'AudioSocket'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_audiosocket.so => (AudioSocket Application)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_dtmf_info.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_dtmf_info.so => (PJSIP DTMF INFO Support)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_caller_id.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_caller_id.so => (PJSIP Caller ID Support)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_rfc3326.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_rfc3326.so => (PJSIP RFC3326 Support)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_nat.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_nat.so => (PJSIP NAT Support)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_logger.so.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_logger.so => (PJSIP Packet Logger)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading res_pjsip_outbound_registration.so.
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPUnregister
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPRegister
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PJSIPShowRegistrationsOutbound
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: res_pjsip_outbound_registration.so => (PJSIP Outbound Registration Support)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading format_wav.so.
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format wav, extension(s) wav
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format wav16, extension(s) wav16
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: format_wav.so => (Microsoft WAV/WAV16 format (8kHz/16kHz Signed Linear))
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading format_pcm.so.
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format pcm, extension(s) pcm|ulaw|ul|mu|ulw
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format alaw, extension(s) alaw|al|alw
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format au, extension(s) au
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format g722, extension(s) g722
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: format_pcm.so => (Raw/Sun uLaw/ALaw 8KHz (PCM,PCMA,AU), G.722 16Khz)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading format_sln.so.
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format sln, extension(s) sln|slin|raw
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format sln12, extension(s) sln12
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format sln16, extension(s) sln16
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format sln24, extension(s) sln24
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format sln32, extension(s) sln32
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format sln44, extension(s) sln44
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format sln48, extension(s) sln48
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format sln96, extension(s) sln96
+[Nov 16 05:51:21] VERBOSE[7733] file.c: Registered file format sln192, extension(s) sln192
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: format_sln.so => (Raw Signed Linear Audio support (SLN) 8khz-192khz)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_stack.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'StackPop'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Return'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'GosubIf'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Gosub'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'LOCAL'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'LOCAL_PEEK'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'STACK_PEEK'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_stack.so => (Dialplan subroutines (Gosub, Return, etc))
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading sounds.
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: sounds => (Sounds Index)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading pbx_config.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx.c: Time to scan old dialplan and merge leftovers back into the new: 0.000001 sec
+[Nov 16 05:51:21] VERBOSE[7733] pbx.c: Time to restore hints and swap in new dialplan: 0.000005 sec
+[Nov 16 05:51:21] VERBOSE[7733] pbx.c: Time to delete the old dialplan: 0.000000 sec
+[Nov 16 05:51:21] VERBOSE[7733] pbx.c: Total time merge_contexts_delete: 0.000006 sec
+[Nov 16 05:51:21] VERBOSE[7733] pbx.c: pbx_config successfully loaded 0 contexts (enable debug for details).
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action DialplanExtensionAdd
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action DialplanExtensionRemove
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: pbx_config.so => (Text Extension Configuration)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_dial.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Dial'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'RetryDial'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_dial.so => (Dialing Application)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_playback.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Playback'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_playback.so => (Sound File Playback Application)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_echo.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Echo'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_echo.so => (Simple Echo Application)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_record.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Record'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_record.so => (Trivial Record Application)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_senddtmf.so.
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action PlayDTMF
+[Nov 16 05:51:21] VERBOSE[7733] manager.c: Manager registered action SendFlash
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'SendDTMF'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_senddtmf.so => (Send DTMF digits Application)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_read.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Read'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_read.so => (Read Variable Application)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_verbose.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Log'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Verbose'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_verbose.so => (Send verbose output)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_system.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'TrySystem'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'System'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_system.so => (Generic System() application)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading app_originate.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'Originate'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: app_originate.so => (Originate call)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading func_channel.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'CHANNEL'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'CHANNELS'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'CHANNEL_EXISTS'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'MASTER_CHANNEL'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: func_channel.so => (Channel information dialplan functions)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading func_callerid.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'CALLERID'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'CONNECTEDLINE'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'REDIRECTING'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: func_callerid.so => (Party ID related dialplan functions (Caller-ID, Connected-line, Redirecting))
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading func_logic.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'ISNULL'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'SET'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'EXISTS'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'IF'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'IFTIME'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'IMPORT'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'DELETE'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'VARIABLE_EXISTS'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: func_logic.so => (Logical dialplan functions)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading func_strings.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'FIELDQTY'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'FIELDNUM'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'FILTER'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'REPLACE'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'STRREPLACE'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'STRBETWEEN'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'LISTFILTER'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'REGEX'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'ARRAY'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'QUOTE'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'CSV_QUOTE'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'LEN'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'STRFTIME'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'STRPTIME'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'EVAL'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'KEYPADHASH'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'HASHKEYS'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'HASH'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_app.c: Registered application 'ClearHash'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'TOUPPER'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'TOLOWER'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'SHIFT'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'POP'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'PUSH'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'UNSHIFT'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'PASSTHRU'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'TRIM'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'LTRIM'
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'RTRIM'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: func_strings.so => (String handling dialplan functions)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading codec_alaw.so.
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'alawtolin' from codec alaw to slin, table cost, 900000, computational cost 19
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'lintoalaw' from codec slin to alaw, table cost, 600000, computational cost 33
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: codec_alaw.so => (A-law Coder/Decoder)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading codec_ulaw.so.
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'ulawtolin' from codec ulaw to slin, table cost, 900000, computational cost 35
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'lintoulaw' from codec slin to ulaw, table cost, 600000, computational cost 11
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: codec_ulaw.so => (mu-Law Coder/Decoder)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading codec_a_mu.so.
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'alawtoulaw' from codec alaw to ulaw, table cost, 915000, computational cost 12
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'ulawtoalaw' from codec ulaw to alaw, table cost, 915000, computational cost 39
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: codec_a_mu.so => (A-law and Mulaw direct Coder/Decoder)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading codec_g722.so.
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'g722tolin' from codec g722 to slin, table cost, 960000, computational cost 255
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'lintog722' from codec slin to g722, table cost, 825000, computational cost 428
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'g722tolin16' from codec g722 to slin, table cost, 900000, computational cost 602
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'lin16tog722' from codec slin to g722, table cost, 600000, computational cost 842
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: codec_g722.so => (ITU G.722-64kbps G722 Transcoder)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading codec_resample.so.
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 8000khz -> 12000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 8000khz -> 16000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 8000khz -> 24000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 8000khz -> 32000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 8000khz -> 44100khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 8000khz -> 48000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 8000khz -> 96000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 8000khz -> 192000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 12000khz -> 8000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 12000khz -> 16000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 12000khz -> 24000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 12000khz -> 32000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 12000khz -> 44100khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 12000khz -> 48000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 12000khz -> 96000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 12000khz -> 192000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 16000khz -> 8000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 16000khz -> 12000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 16000khz -> 24000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 16000khz -> 32000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 16000khz -> 44100khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 16000khz -> 48000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 16000khz -> 96000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 16000khz -> 192000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 24000khz -> 8000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 24000khz -> 12000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 24000khz -> 16000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 24000khz -> 32000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 24000khz -> 44100khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 24000khz -> 48000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 24000khz -> 96000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 24000khz -> 192000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 32000khz -> 8000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 32000khz -> 12000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 32000khz -> 16000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 32000khz -> 24000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 32000khz -> 44100khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 32000khz -> 48000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 32000khz -> 96000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 32000khz -> 192000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 44100khz -> 8000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 44100khz -> 12000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 44100khz -> 16000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 44100khz -> 24000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 44100khz -> 32000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 44100khz -> 48000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 44100khz -> 96000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 44100khz -> 192000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 48000khz -> 8000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 48000khz -> 12000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 48000khz -> 16000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 48000khz -> 24000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 48000khz -> 32000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 48000khz -> 44100khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 48000khz -> 96000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 48000khz -> 192000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 96000khz -> 8000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 96000khz -> 12000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 96000khz -> 16000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 96000khz -> 24000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 96000khz -> 32000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 96000khz -> 44100khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 96000khz -> 48000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 96000khz -> 192000khz' from codec slin to slin, table cost, 800000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 192000khz -> 8000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 192000khz -> 12000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 192000khz -> 16000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 192000khz -> 24000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 192000khz -> 32000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 192000khz -> 44100khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 192000khz -> 48000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] translate.c: Registered translator 'slin 192000khz -> 96000khz' from codec slin to slin, table cost, 850000, computational cost 999999
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: codec_resample.so => (SLIN Resampling Codec)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading bridge_simple.so.
+[Nov 16 05:51:21] VERBOSE[7733] bridge.c: Registered bridge technology simple_bridge
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: bridge_simple.so => (Simple two channel bridging module)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading bridge_native_rtp.so.
+[Nov 16 05:51:21] VERBOSE[7733] bridge.c: Registered bridge technology native_rtp
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: bridge_native_rtp.so => (Native RTP bridging module)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading chan_bridge_media.so.
+[Nov 16 05:51:21] VERBOSE[7733] channel.c: Registered channel type 'Announcer' (Bridge Media Announcing Channel Driver)
+[Nov 16 05:51:21] VERBOSE[7733] channel.c: Registered channel type 'Recorder' (Bridge Media Recording Channel Driver)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: chan_bridge_media.so => (Bridge Media Channel Driver)
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: Loading func_shell.so.
+[Nov 16 05:51:21] VERBOSE[7733] pbx_functions.c: Registered custom function 'SHELL'
+[Nov 16 05:51:21] VERBOSE[7733] loader.c: func_shell.so => (Collects the output generated by a command executed by the system shell)
+[Nov 16 05:51:21] VERBOSE[7733] asterisk.c: Asterisk Ready.
+[Nov 16 05:51:27] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:51:27] VERBOSE[7850] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:51:27] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:51:27] VERBOSE[7853] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:56:25] NOTICE[9578] res_pjsip/pjsip_distributor.c: Request 'REGISTER' from '"Jarvis" <sip:620@127.0.0.1>' failed for '127.0.0.1:5072' (callid: cs6hss9w7oshb3l2) - Failed to authenticate
+[Nov 16 05:56:25] VERBOSE[9578] res_pjsip_registrar.c: Added contact 'sip:620@127.0.0.1:5070' to AOR '620' with expiration of 300 seconds
+[Nov 16 05:56:25] VERBOSE[9579] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Reachable
+[Nov 16 05:56:25] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:56:25] VERBOSE[9585] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:56:25] VERBOSE[9587][C-00000001] pbx.c: Executing [600@fritz:1] Answer("PJSIP/620-00000000", "") in new stack
+[Nov 16 05:56:25] VERBOSE[9587][C-00000001] pbx.c: Executing [600@fritz:2] Playback("PJSIP/620-00000000", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440") in new stack
+[Nov 16 05:56:25] VERBOSE[9587][C-00000001] file.c: <PJSIP/620-00000000> Playing '/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440.slin' (language 'en')
+[Nov 16 05:56:27] VERBOSE[9587][C-00000001] pbx.c: Spawn extension (fritz, 600, 2) exited non-zero on 'PJSIP/620-00000000'
+[Nov 16 05:56:27] VERBOSE[9588][C-00000002] pbx.c: Executing [601@fritz:1] Answer("PJSIP/620-00000001", "") in new stack
+[Nov 16 05:56:27] VERBOSE[9588][C-00000002] pbx.c: Executing [601@fritz:2] Echo("PJSIP/620-00000001", "") in new stack
+[Nov 16 05:56:31] VERBOSE[9588][C-00000002] pbx.c: Spawn extension (fritz, 601, 2) exited non-zero on 'PJSIP/620-00000001'
+[Nov 16 05:56:31] VERBOSE[9589][C-00000003] pbx.c: Executing [602@fritz:1] Answer("PJSIP/620-00000002", "") in new stack
+[Nov 16 05:56:31] VERBOSE[9589][C-00000003] pbx.c: Executing [602@fritz:2] Record("PJSIP/620-00000002", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/fritzdouble/spool/rec602-620.wav,0,6,k") in new stack
+[Nov 16 05:56:31] WARNING[9589][C-00000003] file.c: File beep does not exist in any format
+[Nov 16 05:56:31] WARNING[9589][C-00000003] file.c: Unable to open beep (format (alaw)): No such file or directory
+[Nov 16 05:56:31] WARNING[9589][C-00000003] app_record.c: ast_streamfile(beep) failed on PJSIP/620-00000002
+[Nov 16 05:56:34] VERBOSE[9589][C-00000003] pbx.c: Spawn extension (fritz, 602, 2) exited non-zero on 'PJSIP/620-00000002'
+[Nov 16 05:56:34] VERBOSE[9590][C-00000004] pbx.c: Executing [605@fritz:1] Answer("PJSIP/620-00000003", "") in new stack
+[Nov 16 05:56:34] VERBOSE[9590][C-00000004] pbx.c: Executing [605@fritz:2] Wait("PJSIP/620-00000003", "1") in new stack
+[Nov 16 05:56:35] VERBOSE[9590][C-00000004] pbx.c: Executing [605@fritz:3] SendDTMF("PJSIP/620-00000003", "1357#,250,120") in new stack
+[Nov 16 05:56:37] VERBOSE[9590][C-00000004] pbx.c: Spawn extension (fritz, 605, 3) exited non-zero on 'PJSIP/620-00000003'
+[Nov 16 05:56:37] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:56:37] VERBOSE[9592] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:56:56] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:56:56] VERBOSE[9603] loader.c: Loaded res_clioriginate.so => (Call origination and redirection from the CLI)
+[Nov 16 05:56:56] VERBOSE[9603] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:56:56] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:56:56] VERBOSE[9605] pbx.c: Time to scan old dialplan and merge leftovers back into the new: 0.000005 sec
+[Nov 16 05:56:56] VERBOSE[9605] pbx.c: Time to restore hints and swap in new dialplan: 0.000006 sec
+[Nov 16 05:56:56] VERBOSE[9605] pbx.c: Time to delete the old dialplan: 0.000010 sec
+[Nov 16 05:56:56] VERBOSE[9605] pbx.c: Total time merge_contexts_delete: 0.000021 sec
+[Nov 16 05:56:56] VERBOSE[9605] pbx.c: pbx_config successfully loaded 1 contexts (enable debug for details).
+[Nov 16 05:56:56] VERBOSE[9605] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:56:57] NOTICE[9578] res_pjsip/pjsip_distributor.c: Request 'REGISTER' from '"Jarvis" <sip:620@127.0.0.1>' failed for '127.0.0.1:5072' (callid: o8n3ukyywqwzavhv) - Failed to authenticate
+[Nov 16 05:56:57] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:56:57] VERBOSE[9613] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:56:57] VERBOSE[9614][C-00000005] pbx.c: Executing [600@fritz:1] Answer("PJSIP/620-00000004", "") in new stack
+[Nov 16 05:56:57] VERBOSE[9614][C-00000005] pbx.c: Executing [600@fritz:2] Playback("PJSIP/620-00000004", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440") in new stack
+[Nov 16 05:56:57] VERBOSE[9614][C-00000005] file.c: <PJSIP/620-00000004> Playing '/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440.slin' (language 'en')
+[Nov 16 05:56:59] VERBOSE[9614][C-00000005] pbx.c: Spawn extension (fritz, 600, 2) exited non-zero on 'PJSIP/620-00000004'
+[Nov 16 05:56:59] VERBOSE[9615][C-00000006] pbx.c: Executing [601@fritz:1] Answer("PJSIP/620-00000005", "") in new stack
+[Nov 16 05:56:59] VERBOSE[9615][C-00000006] pbx.c: Executing [601@fritz:2] Echo("PJSIP/620-00000005", "") in new stack
+[Nov 16 05:57:03] VERBOSE[9615][C-00000006] pbx.c: Spawn extension (fritz, 601, 2) exited non-zero on 'PJSIP/620-00000005'
+[Nov 16 05:57:03] VERBOSE[9616][C-00000007] pbx.c: Executing [602@fritz:1] Answer("PJSIP/620-00000006", "") in new stack
+[Nov 16 05:57:03] VERBOSE[9616][C-00000007] pbx.c: Executing [602@fritz:2] Record("PJSIP/620-00000006", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/fritzdouble/spool/rec602-620.wav,0,6,kq") in new stack
+[Nov 16 05:57:06] VERBOSE[9616][C-00000007] pbx.c: Spawn extension (fritz, 602, 2) exited non-zero on 'PJSIP/620-00000006'
+[Nov 16 05:57:06] VERBOSE[9617][C-00000008] pbx.c: Executing [605@fritz:1] Answer("PJSIP/620-00000007", "") in new stack
+[Nov 16 05:57:06] VERBOSE[9617][C-00000008] pbx.c: Executing [605@fritz:2] Wait("PJSIP/620-00000007", "1") in new stack
+[Nov 16 05:57:07] VERBOSE[9617][C-00000008] pbx.c: Executing [605@fritz:3] SendDTMF("PJSIP/620-00000007", "1357#,250,120") in new stack
+[Nov 16 05:57:09] VERBOSE[9617][C-00000008] pbx.c: Spawn extension (fritz, 605, 3) exited non-zero on 'PJSIP/620-00000007'
+[Nov 16 05:57:09] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:57:09] VERBOSE[9619] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:57:09] VERBOSE[9620] dial.c: Called 620
+[Nov 16 05:57:09] VERBOSE[9620] dial.c: PJSIP/620-00000008 is ringing
+[Nov 16 05:57:09] VERBOSE[9620] dial.c: PJSIP/620-00000008 answered
+[Nov 16 05:57:09] VERBOSE[9620][C-00000009] pbx.c: Executing [606@fritz:1] Answer("PJSIP/620-00000008", "") in new stack
+[Nov 16 05:57:09] VERBOSE[9620][C-00000009] pbx.c: Executing [606@fritz:2] Playback("PJSIP/620-00000008", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440") in new stack
+[Nov 16 05:57:09] VERBOSE[9620][C-00000009] file.c: <PJSIP/620-00000008> Playing '/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440.slin' (language 'en')
+[Nov 16 05:57:13] VERBOSE[9620][C-00000009] pbx.c: Executing [606@fritz:3] Record("PJSIP/620-00000008", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/fritzdouble/spool/rec606.wav,0,4,kq") in new stack
+[Nov 16 05:57:16] VERBOSE[9620][C-00000009] pbx.c: Spawn extension (fritz, 606, 3) exited non-zero on 'PJSIP/620-00000008'
+[Nov 16 05:57:17] VERBOSE[9578] res_pjsip_registrar.c: Added contact 'sip:621@127.0.0.1:5074' to AOR '621' with expiration of 300 seconds
+[Nov 16 05:57:17] VERBOSE[9579] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Reachable
+[Nov 16 05:57:17] VERBOSE[9624][C-0000000a] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-00000009", "PJSIP/620,20") in new stack
+[Nov 16 05:57:17] VERBOSE[9624][C-0000000a] app_dial.c: Called PJSIP/620
+[Nov 16 05:57:17] VERBOSE[9624][C-0000000a] app_dial.c: PJSIP/620-0000000a is ringing
+[Nov 16 05:57:17] VERBOSE[9624][C-0000000a] app_dial.c: PJSIP/620-0000000a answered PJSIP/621-00000009
+[Nov 16 05:57:17] VERBOSE[9625][C-0000000a] bridge_channel.c: Channel PJSIP/620-0000000a joined 'simple_bridge' basic-bridge <37478411-d90c-4dde-bbca-b63be62950ad>
+[Nov 16 05:57:17] VERBOSE[9624][C-0000000a] bridge_channel.c: Channel PJSIP/621-00000009 joined 'simple_bridge' basic-bridge <37478411-d90c-4dde-bbca-b63be62950ad>
+[Nov 16 05:57:20] VERBOSE[9624][C-0000000a] bridge_channel.c: Channel PJSIP/621-00000009 left 'native_rtp' basic-bridge <37478411-d90c-4dde-bbca-b63be62950ad>
+[Nov 16 05:57:20] VERBOSE[9625][C-0000000a] bridge_channel.c: Channel PJSIP/620-0000000a left 'native_rtp' basic-bridge <37478411-d90c-4dde-bbca-b63be62950ad>
+[Nov 16 05:57:20] VERBOSE[9624][C-0000000a] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-00000009'
+[Nov 16 05:57:20] VERBOSE[9578] res_pjsip_registrar.c: Removed contact 'sip:620@127.0.0.1:5070' from AOR '620' due to request
+[Nov 16 05:57:20] VERBOSE[9580] res_pjsip/pjsip_options.c: Contact 620/sip:620@127.0.0.1:5070 has been deleted
+[Nov 16 05:57:20] VERBOSE[9580] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Unreachable
+[Nov 16 05:57:20] VERBOSE[9578] res_pjsip_registrar.c: Removed contact 'sip:621@127.0.0.1:5074' from AOR '621' due to request
+[Nov 16 05:57:20] VERBOSE[9578] res_pjsip/pjsip_options.c: Contact 621/sip:621@127.0.0.1:5074 has been deleted
+[Nov 16 05:57:20] VERBOSE[9578] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Unreachable
+[Nov 16 05:58:48] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:58:48] WARNING[9683] loader.c: Module 'format_wav.so' already loaded and running.
+[Nov 16 05:58:48] VERBOSE[9683] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:58:48] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:58:48] VERBOSE[9685] pbx.c: Time to scan old dialplan and merge leftovers back into the new: 0.000005 sec
+[Nov 16 05:58:48] VERBOSE[9685] pbx.c: Time to restore hints and swap in new dialplan: 0.000007 sec
+[Nov 16 05:58:48] VERBOSE[9685] pbx.c: Time to delete the old dialplan: 0.000010 sec
+[Nov 16 05:58:48] VERBOSE[9685] pbx.c: Total time merge_contexts_delete: 0.000022 sec
+[Nov 16 05:58:48] VERBOSE[9685] pbx.c: pbx_config successfully loaded 1 contexts (enable debug for details).
+[Nov 16 05:58:48] VERBOSE[9685] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:58:49] VERBOSE[9578] res_pjsip_registrar.c: Added contact 'sip:620@127.0.0.1:5080;ob' to AOR '620' with expiration of 300 seconds
+[Nov 16 05:58:49] VERBOSE[9697] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Reachable
+[Nov 16 05:58:49] VERBOSE[9702][C-0000000b] pbx.c: Executing [600@fritz:1] Answer("PJSIP/620-0000000b", "") in new stack
+[Nov 16 05:58:49] VERBOSE[9702][C-0000000b] pbx.c: Executing [600@fritz:2] Playback("PJSIP/620-0000000b", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440") in new stack
+[Nov 16 05:58:49] VERBOSE[9702][C-0000000b] file.c: <PJSIP/620-0000000b> Playing '/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440.slin' (language 'en')
+[Nov 16 05:58:51] VERBOSE[9702][C-0000000b] pbx.c: Spawn extension (fritz, 600, 2) exited non-zero on 'PJSIP/620-0000000b'
+[Nov 16 05:58:51] VERBOSE[9704][C-0000000c] pbx.c: Executing [602@fritz:1] Answer("PJSIP/620-0000000c", "") in new stack
+[Nov 16 05:58:51] VERBOSE[9704][C-0000000c] pbx.c: Executing [602@fritz:2] Record("PJSIP/620-0000000c", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/fritzdouble/spool/rec602-620.wav,0,6,kq") in new stack
+[Nov 16 05:58:54] VERBOSE[9704][C-0000000c] pbx.c: Spawn extension (fritz, 602, 2) exited non-zero on 'PJSIP/620-0000000c'
+[Nov 16 05:58:55] VERBOSE[9578] res_pjsip_registrar.c: Added contact 'sip:621@127.0.0.1:5074' to AOR '621' with expiration of 300 seconds
+[Nov 16 05:58:55] VERBOSE[9697] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Reachable
+[Nov 16 05:58:55] VERBOSE[9706][C-0000000d] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-0000000d", "PJSIP/620,20") in new stack
+[Nov 16 05:58:55] VERBOSE[9706][C-0000000d] app_dial.c: Called PJSIP/620
+[Nov 16 05:58:55] VERBOSE[9706][C-0000000d] app_dial.c: PJSIP/620-0000000e answered PJSIP/621-0000000d
+[Nov 16 05:58:55] VERBOSE[9708][C-0000000d] bridge_channel.c: Channel PJSIP/620-0000000e joined 'simple_bridge' basic-bridge <f63f8bea-fd8f-4759-8a13-a62f0fd7dc1c>
+[Nov 16 05:58:55] VERBOSE[9706][C-0000000d] bridge_channel.c: Channel PJSIP/621-0000000d joined 'simple_bridge' basic-bridge <f63f8bea-fd8f-4759-8a13-a62f0fd7dc1c>
+[Nov 16 05:59:00] VERBOSE[9706][C-0000000d] bridge_channel.c: Channel PJSIP/621-0000000d left 'native_rtp' basic-bridge <f63f8bea-fd8f-4759-8a13-a62f0fd7dc1c>
+[Nov 16 05:59:00] VERBOSE[9706][C-0000000d] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-0000000d'
+[Nov 16 05:59:00] VERBOSE[9708][C-0000000d] bridge_channel.c: Channel PJSIP/620-0000000e left 'native_rtp' basic-bridge <f63f8bea-fd8f-4759-8a13-a62f0fd7dc1c>
+[Nov 16 05:59:00] VERBOSE[9578] res_pjsip_registrar.c: Removed contact 'sip:621@127.0.0.1:5074' from AOR '621' due to request
+[Nov 16 05:59:00] VERBOSE[9699] res_pjsip/pjsip_options.c: Contact 621/sip:621@127.0.0.1:5074 has been deleted
+[Nov 16 05:59:00] VERBOSE[9699] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Unreachable
+[Nov 16 05:59:00] VERBOSE[9578] res_pjsip_registrar.c: Removed contact 'sip:620@127.0.0.1:5080;ob' from AOR '620' due to request
+[Nov 16 05:59:00] VERBOSE[9697] res_pjsip/pjsip_options.c: Contact 620/sip:620@127.0.0.1:5080;ob has been deleted
+[Nov 16 05:59:00] VERBOSE[9697] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Unreachable
+[Nov 16 05:59:09] VERBOSE[9578] res_pjsip_registrar.c: Added contact 'sip:620@127.0.0.1:5080;ob' to AOR '620' with expiration of 300 seconds
+[Nov 16 05:59:09] VERBOSE[9697] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Reachable
+[Nov 16 05:59:09] VERBOSE[9723][C-0000000e] pbx.c: Executing [607@fritz:1] Answer("PJSIP/620-0000000f", "") in new stack
+[Nov 16 05:59:09] VERBOSE[9723][C-0000000e] pbx.c: Executing [607@fritz:2] Playback("PJSIP/620-0000000f", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone3000") in new stack
+[Nov 16 05:59:09] VERBOSE[9723][C-0000000e] file.c: <PJSIP/620-0000000f> Playing '/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone3000.slin16' (language 'en')
+[Nov 16 05:59:12] VERBOSE[9723][C-0000000e] pbx.c: Spawn extension (fritz, 607, 2) exited non-zero on 'PJSIP/620-0000000f'
+[Nov 16 05:59:12] VERBOSE[9728][C-0000000f] pbx.c: Executing [602@fritz:1] Answer("PJSIP/620-00000010", "") in new stack
+[Nov 16 05:59:12] VERBOSE[9728][C-0000000f] pbx.c: Executing [602@fritz:2] Record("PJSIP/620-00000010", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/fritzdouble/spool/rec602-620.wav,0,6,kq") in new stack
+[Nov 16 05:59:15] VERBOSE[9728][C-0000000f] pbx.c: Spawn extension (fritz, 602, 2) exited non-zero on 'PJSIP/620-00000010'
+[Nov 16 05:59:15] VERBOSE[9578] res_pjsip_registrar.c: Added contact 'sip:621@127.0.0.1:5074' to AOR '621' with expiration of 300 seconds
+[Nov 16 05:59:15] VERBOSE[9578] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Reachable
+[Nov 16 05:59:15] VERBOSE[9730][C-00000010] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-00000011", "PJSIP/620,20") in new stack
+[Nov 16 05:59:15] VERBOSE[9730][C-00000010] app_dial.c: Called PJSIP/620
+[Nov 16 05:59:15] VERBOSE[9730][C-00000010] app_dial.c: PJSIP/620-00000012 answered PJSIP/621-00000011
+[Nov 16 05:59:15] VERBOSE[9731][C-00000010] bridge_channel.c: Channel PJSIP/620-00000012 joined 'simple_bridge' basic-bridge <9bdaf602-6ffa-4bfe-9b61-0664aa7f980a>
+[Nov 16 05:59:15] VERBOSE[9730][C-00000010] bridge_channel.c: Channel PJSIP/621-00000011 joined 'simple_bridge' basic-bridge <9bdaf602-6ffa-4bfe-9b61-0664aa7f980a>
+[Nov 16 05:59:21] VERBOSE[9730][C-00000010] bridge_channel.c: Channel PJSIP/621-00000011 left 'native_rtp' basic-bridge <9bdaf602-6ffa-4bfe-9b61-0664aa7f980a>
+[Nov 16 05:59:21] VERBOSE[9730][C-00000010] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-00000011'
+[Nov 16 05:59:21] VERBOSE[9731][C-00000010] bridge_channel.c: Channel PJSIP/620-00000012 left 'native_rtp' basic-bridge <9bdaf602-6ffa-4bfe-9b61-0664aa7f980a>
+[Nov 16 05:59:21] VERBOSE[9697] res_pjsip_registrar.c: Removed contact 'sip:621@127.0.0.1:5074' from AOR '621' due to request
+[Nov 16 05:59:21] VERBOSE[9698] res_pjsip/pjsip_options.c: Contact 621/sip:621@127.0.0.1:5074 has been deleted
+[Nov 16 05:59:21] VERBOSE[9698] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Unreachable
+[Nov 16 05:59:21] VERBOSE[9578] res_pjsip_registrar.c: Removed contact 'sip:620@127.0.0.1:5080;ob' from AOR '620' due to request
+[Nov 16 05:59:21] VERBOSE[9578] res_pjsip/pjsip_options.c: Contact 620/sip:620@127.0.0.1:5080;ob has been deleted
+[Nov 16 05:59:21] VERBOSE[9578] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Unreachable
+[Nov 16 05:59:50] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:59:50] VERBOSE[9742] loader.c: Reloading module 'res_pjsip.so' (Basic SIP resource)
+[Nov 16 05:59:50] NOTICE[9578] sorcery.c: Type 'system' is not reloadable, maintaining previous values
+[Nov 16 05:59:50] VERBOSE[9742] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:59:51] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 05:59:51] VERBOSE[9747] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 05:59:51] VERBOSE[9578] res_pjsip_registrar.c: Added contact 'sip:621@127.0.0.1:5074' to AOR '621' with expiration of 300 seconds
+[Nov 16 05:59:51] VERBOSE[9578] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Reachable
+[Nov 16 05:59:51] VERBOSE[9755][C-00000011] pbx.c: Executing [603@fritz:1] Answer("PJSIP/621-00000013", "") in new stack
+[Nov 16 05:59:51] VERBOSE[9755][C-00000011] pbx.c: Executing [603@fritz:2] AudioSocket("PJSIP/621-00000013", "40325ec2-5efd-4bd3-805f-53576e581d13,127.0.0.1:9092") in new stack
+[Nov 16 05:59:55] VERBOSE[9755][C-00000011] pbx.c: Spawn extension (fritz, 603, 2) exited non-zero on 'PJSIP/621-00000013'
+[Nov 16 05:59:55] VERBOSE[9578] res_pjsip_registrar.c: Added contact 'sip:620@127.0.0.1:5070' to AOR '620' with expiration of 300 seconds
+[Nov 16 05:59:55] VERBOSE[9698] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Reachable
+[Nov 16 05:59:55] VERBOSE[9757][C-00000012] pbx.c: Executing [601@fritz:1] Answer("PJSIP/620-00000014", "") in new stack
+[Nov 16 05:59:55] VERBOSE[9757][C-00000012] pbx.c: Executing [601@fritz:2] Echo("PJSIP/620-00000014", "") in new stack
+[Nov 16 06:01:07] VERBOSE[9757][C-00000012] pbx.c: Spawn extension (fritz, 601, 2) exited non-zero on 'PJSIP/620-00000014'
+[Nov 16 06:01:07] VERBOSE[9578] res_pjsip_registrar.c: Removed contact 'sip:620@127.0.0.1:5070' from AOR '620' due to request
+[Nov 16 06:01:07] VERBOSE[10072] res_pjsip/pjsip_options.c: Contact 620/sip:620@127.0.0.1:5070 has been deleted
+[Nov 16 06:01:07] VERBOSE[10072] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Unreachable
+[Nov 16 06:01:07] VERBOSE[9578] res_pjsip_registrar.c: Removed contact 'sip:621@127.0.0.1:5074' from AOR '621' due to request
+[Nov 16 06:01:07] VERBOSE[10072] res_pjsip/pjsip_options.c: Contact 621/sip:621@127.0.0.1:5074 has been deleted
+[Nov 16 06:01:07] VERBOSE[10072] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Unreachable
+[Nov 16 06:01:25] WARNING[7764] pjproject: 	     dlg0x7f89201c3d10 Error in refreshing session timer: Invalid operation (PJ_EINVALIDOP)
+[Nov 16 06:03:47] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 06:03:47] VERBOSE[10227] loader.c: Reloading module 'res_pjsip.so' (Basic SIP resource)
+[Nov 16 06:03:47] NOTICE[10228] sorcery.c: Type 'system' is not reloadable, maintaining previous values
+[Nov 16 06:03:47] VERBOSE[10227] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 06:03:47] VERBOSE[10228] res_pjsip_registrar.c: Added contact 'sip:620@127.0.0.1:5070' to AOR '620' with expiration of 300 seconds
+[Nov 16 06:03:47] VERBOSE[10230] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Reachable
+[Nov 16 06:03:47] VERBOSE[10228] res_pjsip_registrar.c: Added contact 'sip:621@127.0.0.1:5074' to AOR '621' with expiration of 300 seconds
+[Nov 16 06:03:47] VERBOSE[10230] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Reachable
+[Nov 16 06:03:47] VERBOSE[10241][C-00000013] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-00000015", "PJSIP/620,20") in new stack
+[Nov 16 06:03:47] VERBOSE[10241][C-00000013] app_dial.c: Called PJSIP/620
+[Nov 16 06:03:47] VERBOSE[10241][C-00000013] app_dial.c: PJSIP/620-00000016 is ringing
+[Nov 16 06:03:47] VERBOSE[10241][C-00000013] app_dial.c: PJSIP/620-00000016 answered PJSIP/621-00000015
+[Nov 16 06:03:47] VERBOSE[10244][C-00000013] bridge_channel.c: Channel PJSIP/620-00000016 joined 'simple_bridge' basic-bridge <53445351-de4b-49ca-a67a-307438a2c848>
+[Nov 16 06:03:47] VERBOSE[10241][C-00000013] bridge_channel.c: Channel PJSIP/621-00000015 joined 'simple_bridge' basic-bridge <53445351-de4b-49ca-a67a-307438a2c848>
+[Nov 16 06:04:08] VERBOSE[10241][C-00000013] bridge_channel.c: Channel PJSIP/621-00000015 left 'native_rtp' basic-bridge <53445351-de4b-49ca-a67a-307438a2c848>
+[Nov 16 06:04:08] VERBOSE[10241][C-00000013] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-00000015'
+[Nov 16 06:04:08] VERBOSE[10244][C-00000013] bridge_channel.c: Channel PJSIP/620-00000016 left 'native_rtp' basic-bridge <53445351-de4b-49ca-a67a-307438a2c848>
+[Nov 16 06:04:08] VERBOSE[10270][C-00000014] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-00000017", "PJSIP/620,20") in new stack
+[Nov 16 06:04:08] VERBOSE[10270][C-00000014] app_dial.c: Called PJSIP/620
+[Nov 16 06:04:08] VERBOSE[10270][C-00000014] app_dial.c: PJSIP/620-00000018 is ringing
+[Nov 16 06:04:08] VERBOSE[10270][C-00000014] app_dial.c: PJSIP/620-00000018 answered PJSIP/621-00000017
+[Nov 16 06:04:08] VERBOSE[10271][C-00000014] bridge_channel.c: Channel PJSIP/620-00000018 joined 'simple_bridge' basic-bridge <31e8d12a-20c3-4457-b033-f3e5d77c821c>
+[Nov 16 06:04:08] VERBOSE[10270][C-00000014] bridge_channel.c: Channel PJSIP/621-00000017 joined 'simple_bridge' basic-bridge <31e8d12a-20c3-4457-b033-f3e5d77c821c>
+[Nov 16 06:04:16] VERBOSE[10270][C-00000014] bridge_channel.c: Channel PJSIP/621-00000017 left 'native_rtp' basic-bridge <31e8d12a-20c3-4457-b033-f3e5d77c821c>
+[Nov 16 06:04:16] VERBOSE[10271][C-00000014] bridge_channel.c: Channel PJSIP/620-00000018 left 'native_rtp' basic-bridge <31e8d12a-20c3-4457-b033-f3e5d77c821c>
+[Nov 16 06:04:16] VERBOSE[10270][C-00000014] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-00000017'
+[Nov 16 06:04:16] VERBOSE[10283][C-00000015] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-00000019", "PJSIP/620,20") in new stack
+[Nov 16 06:04:16] VERBOSE[10283][C-00000015] app_dial.c: Called PJSIP/620
+[Nov 16 06:04:16] VERBOSE[10283][C-00000015] app_dial.c: PJSIP/620-0000001a is ringing
+[Nov 16 06:04:16] VERBOSE[10283][C-00000015] app_dial.c: PJSIP/620-0000001a answered PJSIP/621-00000019
+[Nov 16 06:04:16] VERBOSE[10284][C-00000015] bridge_channel.c: Channel PJSIP/620-0000001a joined 'simple_bridge' basic-bridge <70d791a2-ff48-4ca4-ba5a-8bd5e4ab419d>
+[Nov 16 06:04:16] VERBOSE[10283][C-00000015] bridge_channel.c: Channel PJSIP/621-00000019 joined 'simple_bridge' basic-bridge <70d791a2-ff48-4ca4-ba5a-8bd5e4ab419d>
+[Nov 16 06:04:23] VERBOSE[10283][C-00000015] bridge_channel.c: Channel PJSIP/621-00000019 left 'native_rtp' basic-bridge <70d791a2-ff48-4ca4-ba5a-8bd5e4ab419d>
+[Nov 16 06:04:23] VERBOSE[10284][C-00000015] bridge_channel.c: Channel PJSIP/620-0000001a left 'native_rtp' basic-bridge <70d791a2-ff48-4ca4-ba5a-8bd5e4ab419d>
+[Nov 16 06:04:23] VERBOSE[10283][C-00000015] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-00000019'
+[Nov 16 06:04:23] VERBOSE[10228] res_pjsip_registrar.c: Removed contact 'sip:620@127.0.0.1:5070' from AOR '620' due to request
+[Nov 16 06:04:23] VERBOSE[10229] res_pjsip/pjsip_options.c: Contact 620/sip:620@127.0.0.1:5070 has been deleted
+[Nov 16 06:04:23] VERBOSE[10229] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Unreachable
+[Nov 16 06:04:23] VERBOSE[10228] res_pjsip_registrar.c: Removed contact 'sip:621@127.0.0.1:5074' from AOR '621' due to request
+[Nov 16 06:04:23] VERBOSE[10228] res_pjsip/pjsip_options.c: Contact 621/sip:621@127.0.0.1:5074 has been deleted
+[Nov 16 06:04:23] VERBOSE[10228] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Unreachable
+[Nov 16 06:06:24] VERBOSE[10363] res_pjsip_registrar.c: Added contact 'sip:620@127.0.0.1:5070' to AOR '620' with expiration of 300 seconds
+[Nov 16 06:06:24] VERBOSE[10364] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Reachable
+[Nov 16 06:06:24] VERBOSE[10369][C-00000016] pbx.c: Executing [601@fritz:1] Answer("PJSIP/620-0000001b", "") in new stack
+[Nov 16 06:06:24] VERBOSE[10369][C-00000016] pbx.c: Executing [601@fritz:2] Echo("PJSIP/620-0000001b", "") in new stack
+[Nov 16 06:06:26] VERBOSE[10369][C-00000016] pbx.c: Spawn extension (fritz, 601, 2) exited non-zero on 'PJSIP/620-0000001b'
+[Nov 16 06:06:26] VERBOSE[10363] res_pjsip_registrar.c: Removed contact 'sip:620@127.0.0.1:5070' from AOR '620' due to request
+[Nov 16 06:06:26] VERBOSE[10364] res_pjsip/pjsip_options.c: Contact 620/sip:620@127.0.0.1:5070 has been deleted
+[Nov 16 06:06:26] VERBOSE[10364] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Unreachable
+[Nov 16 06:06:35] VERBOSE[10363] res_pjsip_registrar.c: Added contact 'sip:620@127.0.0.1:5070' to AOR '620' with expiration of 300 seconds
+[Nov 16 06:06:35] VERBOSE[10364] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Reachable
+[Nov 16 06:06:35] VERBOSE[10363] res_pjsip_registrar.c: Added contact 'sip:621@127.0.0.1:5074' to AOR '621' with expiration of 300 seconds
+[Nov 16 06:06:35] VERBOSE[10365] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Reachable
+[Nov 16 06:06:35] VERBOSE[10379][C-00000017] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-0000001c", "PJSIP/620,20") in new stack
+[Nov 16 06:06:35] VERBOSE[10379][C-00000017] app_dial.c: Called PJSIP/620
+[Nov 16 06:06:35] VERBOSE[10379][C-00000017] app_dial.c: PJSIP/620-0000001d is ringing
+[Nov 16 06:06:35] VERBOSE[10379][C-00000017] app_dial.c: PJSIP/620-0000001d answered PJSIP/621-0000001c
+[Nov 16 06:06:35] VERBOSE[10381][C-00000017] bridge_channel.c: Channel PJSIP/620-0000001d joined 'simple_bridge' basic-bridge <465c1a74-dcab-486c-96a2-ca0c07c76255>
+[Nov 16 06:06:35] VERBOSE[10379][C-00000017] bridge_channel.c: Channel PJSIP/621-0000001c joined 'simple_bridge' basic-bridge <465c1a74-dcab-486c-96a2-ca0c07c76255>
+[Nov 16 06:06:57] VERBOSE[10379][C-00000017] bridge_channel.c: Channel PJSIP/621-0000001c left 'native_rtp' basic-bridge <465c1a74-dcab-486c-96a2-ca0c07c76255>
+[Nov 16 06:06:57] VERBOSE[10381][C-00000017] bridge_channel.c: Channel PJSIP/620-0000001d left 'native_rtp' basic-bridge <465c1a74-dcab-486c-96a2-ca0c07c76255>
+[Nov 16 06:06:57] VERBOSE[10379][C-00000017] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-0000001c'
+[Nov 16 06:06:57] VERBOSE[10406][C-00000018] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-0000001e", "PJSIP/620,20") in new stack
+[Nov 16 06:06:57] VERBOSE[10406][C-00000018] app_dial.c: Called PJSIP/620
+[Nov 16 06:06:57] VERBOSE[10406][C-00000018] app_dial.c: PJSIP/620-0000001f is ringing
+[Nov 16 06:06:57] VERBOSE[10406][C-00000018] app_dial.c: PJSIP/620-0000001f answered PJSIP/621-0000001e
+[Nov 16 06:06:57] VERBOSE[10407][C-00000018] bridge_channel.c: Channel PJSIP/620-0000001f joined 'simple_bridge' basic-bridge <76932bb9-8621-4dee-9bea-411522a3bf5a>
+[Nov 16 06:06:57] VERBOSE[10406][C-00000018] bridge_channel.c: Channel PJSIP/621-0000001e joined 'simple_bridge' basic-bridge <76932bb9-8621-4dee-9bea-411522a3bf5a>
+[Nov 16 06:07:04] VERBOSE[10406][C-00000018] bridge_channel.c: Channel PJSIP/621-0000001e left 'native_rtp' basic-bridge <76932bb9-8621-4dee-9bea-411522a3bf5a>
+[Nov 16 06:07:04] VERBOSE[10407][C-00000018] bridge_channel.c: Channel PJSIP/620-0000001f left 'native_rtp' basic-bridge <76932bb9-8621-4dee-9bea-411522a3bf5a>
+[Nov 16 06:07:04] VERBOSE[10406][C-00000018] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-0000001e'
+[Nov 16 06:07:05] VERBOSE[10415][C-00000019] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-00000020", "PJSIP/620,20") in new stack
+[Nov 16 06:07:05] VERBOSE[10415][C-00000019] app_dial.c: Called PJSIP/620
+[Nov 16 06:07:05] VERBOSE[10415][C-00000019] app_dial.c: PJSIP/620-00000021 is ringing
+[Nov 16 06:07:05] VERBOSE[10415][C-00000019] app_dial.c: PJSIP/620-00000021 answered PJSIP/621-00000020
+[Nov 16 06:07:05] VERBOSE[10416][C-00000019] bridge_channel.c: Channel PJSIP/620-00000021 joined 'simple_bridge' basic-bridge <7525fec4-f41f-4d36-8e49-dc44815ff334>
+[Nov 16 06:07:05] VERBOSE[10415][C-00000019] bridge_channel.c: Channel PJSIP/621-00000020 joined 'simple_bridge' basic-bridge <7525fec4-f41f-4d36-8e49-dc44815ff334>
+[Nov 16 06:07:12] VERBOSE[10415][C-00000019] bridge_channel.c: Channel PJSIP/621-00000020 left 'native_rtp' basic-bridge <7525fec4-f41f-4d36-8e49-dc44815ff334>
+[Nov 16 06:07:12] VERBOSE[10415][C-00000019] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-00000020'
+[Nov 16 06:07:12] VERBOSE[10416][C-00000019] bridge_channel.c: Channel PJSIP/620-00000021 left 'native_rtp' basic-bridge <7525fec4-f41f-4d36-8e49-dc44815ff334>
+[Nov 16 06:07:12] VERBOSE[10363] res_pjsip_registrar.c: Removed contact 'sip:620@127.0.0.1:5070' from AOR '620' due to request
+[Nov 16 06:07:12] VERBOSE[10364] res_pjsip/pjsip_options.c: Contact 620/sip:620@127.0.0.1:5070 has been deleted
+[Nov 16 06:07:12] VERBOSE[10364] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Unreachable
+[Nov 16 06:07:12] VERBOSE[10363] res_pjsip_registrar.c: Removed contact 'sip:621@127.0.0.1:5074' from AOR '621' due to request
+[Nov 16 06:07:12] VERBOSE[10364] res_pjsip/pjsip_options.c: Contact 621/sip:621@127.0.0.1:5074 has been deleted
+[Nov 16 06:07:12] VERBOSE[10364] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Unreachable
+[Nov 16 06:07:12] NOTICE[10363] res_pjsip/pjsip_distributor.c: Request 'REGISTER' from '"Jarvis" <sip:620@127.0.0.1>' failed for '127.0.0.1:5072' (callid: n1vsz4npkx5gavap) - Failed to authenticate
+[Nov 16 06:07:12] VERBOSE[10363] res_pjsip_registrar.c: Added contact 'sip:620@127.0.0.1:5070' to AOR '620' with expiration of 300 seconds
+[Nov 16 06:07:12] VERBOSE[10365] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Reachable
+[Nov 16 06:07:12] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 06:07:12] VERBOSE[10447] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 06:07:12] VERBOSE[10448][C-0000001a] pbx.c: Executing [600@fritz:1] Answer("PJSIP/620-00000022", "") in new stack
+[Nov 16 06:07:12] VERBOSE[10448][C-0000001a] pbx.c: Executing [600@fritz:2] Playback("PJSIP/620-00000022", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440") in new stack
+[Nov 16 06:07:12] VERBOSE[10448][C-0000001a] file.c: <PJSIP/620-00000022> Playing '/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440.slin' (language 'en')
+[Nov 16 06:07:15] VERBOSE[10448][C-0000001a] pbx.c: Spawn extension (fritz, 600, 2) exited non-zero on 'PJSIP/620-00000022'
+[Nov 16 06:07:15] VERBOSE[10450][C-0000001b] pbx.c: Executing [601@fritz:1] Answer("PJSIP/620-00000023", "") in new stack
+[Nov 16 06:07:15] VERBOSE[10450][C-0000001b] pbx.c: Executing [601@fritz:2] Echo("PJSIP/620-00000023", "") in new stack
+[Nov 16 06:07:18] VERBOSE[10450][C-0000001b] pbx.c: Spawn extension (fritz, 601, 2) exited non-zero on 'PJSIP/620-00000023'
+[Nov 16 06:07:18] VERBOSE[10451][C-0000001c] pbx.c: Executing [602@fritz:1] Answer("PJSIP/620-00000024", "") in new stack
+[Nov 16 06:07:18] VERBOSE[10451][C-0000001c] pbx.c: Executing [602@fritz:2] Record("PJSIP/620-00000024", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/fritzdouble/spool/rec602-620.wav,0,6,kq") in new stack
+[Nov 16 06:07:21] VERBOSE[10451][C-0000001c] pbx.c: Spawn extension (fritz, 602, 2) exited non-zero on 'PJSIP/620-00000024'
+[Nov 16 06:07:22] VERBOSE[10452][C-0000001d] pbx.c: Executing [605@fritz:1] Answer("PJSIP/620-00000025", "") in new stack
+[Nov 16 06:07:22] VERBOSE[10452][C-0000001d] pbx.c: Executing [605@fritz:2] Wait("PJSIP/620-00000025", "1") in new stack
+[Nov 16 06:07:23] VERBOSE[10452][C-0000001d] pbx.c: Executing [605@fritz:3] SendDTMF("PJSIP/620-00000025", "1357#,250,120") in new stack
+[Nov 16 06:07:25] VERBOSE[10452][C-0000001d] pbx.c: Spawn extension (fritz, 605, 3) exited non-zero on 'PJSIP/620-00000025'
+[Nov 16 06:07:25] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 06:07:25] VERBOSE[10454] asterisk.c: Remote UNIX connection disconnected
+[Nov 16 06:07:25] VERBOSE[10455] dial.c: Called 620
+[Nov 16 06:07:25] VERBOSE[10455] dial.c: PJSIP/620-00000026 is ringing
+[Nov 16 06:07:25] VERBOSE[10455] dial.c: PJSIP/620-00000026 answered
+[Nov 16 06:07:25] VERBOSE[10455][C-0000001e] pbx.c: Executing [606@fritz:1] Answer("PJSIP/620-00000026", "") in new stack
+[Nov 16 06:07:25] VERBOSE[10455][C-0000001e] pbx.c: Executing [606@fritz:2] Playback("PJSIP/620-00000026", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440") in new stack
+[Nov 16 06:07:25] VERBOSE[10455][C-0000001e] file.c: <PJSIP/620-00000026> Playing '/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/audio/tone440.slin' (language 'en')
+[Nov 16 06:07:29] VERBOSE[10455][C-0000001e] pbx.c: Executing [606@fritz:3] Record("PJSIP/620-00000026", "/tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/fritzdouble/spool/rec606.wav,0,4,kq") in new stack
+[Nov 16 06:07:32] VERBOSE[10455][C-0000001e] pbx.c: Spawn extension (fritz, 606, 3) exited non-zero on 'PJSIP/620-00000026'
+[Nov 16 06:07:32] VERBOSE[10363] res_pjsip_registrar.c: Added contact 'sip:621@127.0.0.1:5074' to AOR '621' with expiration of 300 seconds
+[Nov 16 06:07:32] VERBOSE[10364] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Reachable
+[Nov 16 06:07:32] VERBOSE[10456][C-0000001f] pbx.c: Executing [620@fritz:1] Dial("PJSIP/621-00000027", "PJSIP/620,20") in new stack
+[Nov 16 06:07:32] VERBOSE[10456][C-0000001f] app_dial.c: Called PJSIP/620
+[Nov 16 06:07:32] VERBOSE[10456][C-0000001f] app_dial.c: PJSIP/620-00000028 is ringing
+[Nov 16 06:07:32] VERBOSE[10456][C-0000001f] app_dial.c: PJSIP/620-00000028 answered PJSIP/621-00000027
+[Nov 16 06:07:32] VERBOSE[10458][C-0000001f] bridge_channel.c: Channel PJSIP/620-00000028 joined 'simple_bridge' basic-bridge <ce7315ea-a745-46c9-b7eb-8a6924e57dc2>
+[Nov 16 06:07:32] VERBOSE[10456][C-0000001f] bridge_channel.c: Channel PJSIP/621-00000027 joined 'simple_bridge' basic-bridge <ce7315ea-a745-46c9-b7eb-8a6924e57dc2>
+[Nov 16 06:07:36] VERBOSE[10456][C-0000001f] bridge_channel.c: Channel PJSIP/621-00000027 left 'native_rtp' basic-bridge <ce7315ea-a745-46c9-b7eb-8a6924e57dc2>
+[Nov 16 06:07:36] VERBOSE[10458][C-0000001f] bridge_channel.c: Channel PJSIP/620-00000028 left 'native_rtp' basic-bridge <ce7315ea-a745-46c9-b7eb-8a6924e57dc2>
+[Nov 16 06:07:36] VERBOSE[10456][C-0000001f] pbx.c: Spawn extension (fritz, 620, 1) exited non-zero on 'PJSIP/621-00000027'
+[Nov 16 06:07:36] VERBOSE[10363] res_pjsip_registrar.c: Removed contact 'sip:620@127.0.0.1:5070' from AOR '620' due to request
+[Nov 16 06:07:36] VERBOSE[10365] res_pjsip/pjsip_options.c: Contact 620/sip:620@127.0.0.1:5070 has been deleted
+[Nov 16 06:07:36] VERBOSE[10365] res_pjsip/pjsip_configuration.c: Endpoint 620 is now Unreachable
+[Nov 16 06:07:36] VERBOSE[10363] res_pjsip_registrar.c: Removed contact 'sip:621@127.0.0.1:5074' from AOR '621' due to request
+[Nov 16 06:07:36] VERBOSE[10365] res_pjsip/pjsip_options.c: Contact 621/sip:621@127.0.0.1:5074 has been deleted
+[Nov 16 06:07:36] VERBOSE[10365] res_pjsip/pjsip_configuration.c: Endpoint 621 is now Unreachable
+[Nov 16 06:07:36] VERBOSE[7742] asterisk.c: Remote UNIX connection
+[Nov 16 06:07:36] VERBOSE[10463] asterisk.c: Asterisk cleanly ending (0).
+[Nov 16 06:07:36] VERBOSE[10463] asterisk.c: Executing last minute cleanups
+[Nov 16 06:07:36] VERBOSE[10463] res_musiconhold.c: Destroying musiconhold processes
+[Nov 16 06:07:36] VERBOSE[10463] manager.c: Manager unregistered action DBGet
+[Nov 16 06:07:36] VERBOSE[10463] manager.c: Manager unregistered action DBGetTree
+[Nov 16 06:07:36] VERBOSE[10463] manager.c: Manager unregistered action DBPut
+[Nov 16 06:07:36] VERBOSE[10463] manager.c: Manager unregistered action DBDel
+[Nov 16 06:07:36] VERBOSE[10463] manager.c: Manager unregistered action DBDelTree
+[Nov 16 06:07:37] VERBOSE[10463] pbx_functions.c: Unregistered custom function LOG_GROUP

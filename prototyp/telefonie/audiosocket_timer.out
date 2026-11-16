@@ -1,0 +1,27 @@
+{
+  "audiosocket": {
+    "uuid_received": "40325ec25efd4bd3805f53576e581d13",
+    "frames": 180,
+    "server_hears_hz": 440.0,
+    "caller_hears_hz": 1000.0,
+    "dtmf_at_server": ""
+  },
+  "session_timer": {
+    "call_seconds": 72.1,
+    "still_up": true,
+    "end_reason": "",
+    "refresh_requests_seen": [
+      [
+        45.0,
+        "UPDATE",
+        "90;refresher=uac"
+      ]
+    ],
+    "tail_peak_hz": 1000.0,
+    "rtp": {
+      "packets": 3605,
+      "lost": 0,
+      "max_gap_ms": 29.6
+    }
+  }
+}

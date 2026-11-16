@@ -1,0 +1,20 @@
+# Vorschlag (nicht im Repo): pjsua2 für Python 3.13 in einer eigenen Build-Stufe bauen, nur Laufzeitdateien übernehmen.
+# Gemessen im Versuchscontainer (4 Kerne, Ubuntu 24.04, Python 3.13.18): Klonen 3 s, pjproject 42 s, SWIG-Modul 105 s.
+# Laufzeit-Zuwachs: /opt/pj/lib/*.so.2 9,8 MB + _pjsua2.so 4,9 MB (gestrippt) + pjsua2.py 0,6 MB.
+FROM python:3.13-slim AS pjbuild
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential git swig ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 --branch 2.17 https://github.com/pjsip/pjproject /src
+WORKDIR /src
+RUN CFLAGS="-O2 -fPIC" ./configure --prefix=/opt/pj --enable-shared --disable-video --disable-sound \
+      --disable-speex-codec --disable-speex-aec --disable-gsm-codec --disable-ilbc-codec --disable-l16-codec \
+      --disable-opencore-amr --disable-libwebrtc --disable-ssl --disable-v4l2 --disable-ffmpeg --disable-sdl \
+ && make dep && make -j"$(nproc)" && make install
+RUN cd pjsip-apps/src/swig/python && python3 setup.py build \
+ && mkdir -p /opt/pj/python && cp build/lib.*/* /opt/pj/python/ && strip /opt/pj/python/_pjsua2*.so \
+ && rm -f /opt/pj/lib/*.a
+
+FROM python:3.13-slim
+COPY --from=pjbuild /opt/pj/lib/ /opt/pj/lib/
+COPY --from=pjbuild /opt/pj/python/ /usr/local/lib/python3.13/site-packages/
+ENV LD_LIBRARY_PATH=/opt/pj/lib
+# … danach wie bisher (pip install ., web, run.sh)

@@ -1,0 +1,46 @@
+{
+  "register": {
+    "ok": true,
+    "code": 200,
+    "ms": 2.5
+  },
+  "out_607_receive_3000": {
+    "media_up": true,
+    "codec": "PCMA/8000",
+    "peak": [
+      3000.0,
+      1.0
+    ],
+    "makecall_to_first_frame_ms": 18.5,
+    "frames_rx": 125
+  },
+  "out_602_far_end_records_1000": {
+    "peak": [
+      1000.0,
+      1.0
+    ],
+    "wav_rate": 8000
+  },
+  "in_621_calls_620": {
+    "remote_uri": "\"Handy\" <sip:621@127.0.0.1>",
+    "codec": "(beendet)",
+    "jarvis_hears": [
+      440.0,
+      1.0
+    ],
+    "dtmf_received": "4711#",
+    "remote_hangup_detected": true,
+    "dial_to_up_ms": 5.5,
+    "state": "up",
+    "handy_hears": [
+      1000.0,
+      1.0
+    ],
+    "handy_rtp": {
+      "packets": 151,
+      "lost": 0,
+      "jitter_ms": 0.34,
+      "max_gap_ms": 21.2
+    }
+  }
+}

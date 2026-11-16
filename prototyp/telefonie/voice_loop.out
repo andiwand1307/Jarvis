@@ -1,0 +1,63 @@
+{
+  "params": {
+    "stt_ms_simulated": 300,
+    "llm_first_token_ms_simulated": 800,
+    "tokens_per_s_simulated": 60
+  },
+  "sentence_split_check": [
+    "Morgen wird es in München überwiegend sonnig.",
+    "Die Temperaturen steigen auf etwa zwölf Grad, z. B. am Nachmittag.",
+    "Am Abend ziehen von Westen Wolken auf, es bleibt aber trocken.",
+    "Soll ich dir den Regenschirm trotzdem auf die Liste setzen?"
+  ],
+  "einfache_antwort": {
+    "question_seconds": 2.97,
+    "stt_ms": 301.1,
+    "llm_first_text_ms": 1102.2,
+    "speech_end_to_first_audio_ms": 1275.1,
+    "vad_end_after_true_end_ms": 329.8,
+    "true_end_to_heard_at_handy_ms": 1608.5,
+    "filler_spoken": false,
+    "tts_synth_ms_per_sentence": [
+      17,
+      16,
+      25,
+      15
+    ],
+    "vad_ms_per_32ms_chunk": 0.675
+  },
+  "mit_werkzeug_fuellsignal": {
+    "question_seconds": 2.97,
+    "stt_ms": 300.6,
+    "speech_end_to_first_audio_ms": 1116.7,
+    "vad_end_after_true_end_ms": 331.3,
+    "true_end_to_heard_at_handy_ms": 1449.8,
+    "filler_spoken": true,
+    "tts_synth_ms_per_sentence": [
+      15
+    ],
+    "vad_ms_per_32ms_chunk": 0.499,
+    "llm_first_text_ms": 3403.2
+  },
+  "ins_wort_fallen": {
+    "question_seconds": 2.97,
+    "stt_ms": 300.5,
+    "llm_first_text_ms": 1100.8,
+    "speech_end_to_first_audio_ms": 1273.2,
+    "vad_end_after_true_end_ms": 333.4,
+    "true_end_to_heard_at_handy_ms": 1610.2,
+    "filler_spoken": false,
+    "barge_speech_onset_to_detect_ms": 141.9,
+    "barge_speech_onset_to_silence_at_handy_ms": 140.8,
+    "barge_dropped": [
+      "barge_in dropped_ms=13534"
+    ],
+    "tts_synth_ms_per_sentence": [
+      15,
+      21,
+      22,
+      19
+    ],
+    "vad_ms_per_32ms_chunk": 0.699
+  }
+}

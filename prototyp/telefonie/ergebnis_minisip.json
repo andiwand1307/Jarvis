@@ -1,0 +1,76 @@
+{
+  "register_wrong_password_rejected": true,
+  "register": {
+    "ok": true,
+    "ms": 0.6,
+    "expires": 299,
+    "asterisk_sees_contact": true
+  },
+  "out_600_receive_440": {
+    "state": "up",
+    "codec_pt": 8,
+    "peak_hz": 440.1,
+    "energy_share": 1.0,
+    "invite_to_200_ms": 1.8,
+    "200_to_first_rtp_ms": 1.0,
+    "packets": 126,
+    "lost": 0,
+    "jitter_ms": 0.14,
+    "max_gap_ms": 22.2
+  },
+  "echo_601_send_1000": {
+    "peak_hz": 1000.0,
+    "energy_share": 1.0,
+    "roundtrip_ms": 0.8,
+    "packets": 176,
+    "lost": 0,
+    "jitter_ms": 0.43,
+    "max_gap_ms": 26.4
+  },
+  "out_602_far_end_records_1000": {
+    "peak_hz": 1000.0,
+    "energy_share": 1.0,
+    "wav_rate": 8000,
+    "seconds": 3.32
+  },
+  "dtmf_receive": {
+    "expected": "1357#",
+    "got": "1357#"
+  },
+  "in_originate_606": {
+    "from": "anonymous",
+    "originate_to_invite_ms": 7.8,
+    "peak_hz": 440.0,
+    "energy_share": 1.0,
+    "packets": 151,
+    "lost": 0,
+    "jitter_ms": 0.37,
+    "max_gap_ms": 21.8,
+    "far_end_recorded_peak_hz": 1000.0,
+    "far_end_energy_share": 0.999
+  },
+  "bridged_621_calls_620": {
+    "caller_seen_by_jarvis": "621",
+    "dial_to_ring_ms": 3.7,
+    "answer_to_connected_ms": 1.2,
+    "jarvis_hears_hz": 440.0,
+    "jarvis_share": 1.0,
+    "handy_hears_hz": 1000.0,
+    "handy_share": 1.0,
+    "dtmf_jarvis_to_handy": "42#",
+    "jarvis_rtp": {
+      "packets": 182,
+      "lost": 0,
+      "jitter_ms": 0.5,
+      "max_gap_ms": 22.6
+    },
+    "handy_rtp": {
+      "packets": 181,
+      "lost": 33,
+      "jitter_ms": 0.69,
+      "max_gap_ms": 22.6
+    },
+    "jarvis_end_reason": "remote"
+  },
+  "unregister_ok": true
+}

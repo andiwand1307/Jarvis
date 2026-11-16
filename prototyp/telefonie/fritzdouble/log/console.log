@@ -1,0 +1,5 @@
+[0mPBX UUID: 2b943c97-579c-4e95-a6fa-b3ef7f4e44cd
+Unable to load config file 'stasis.conf'
+Could not load Stasis configuration; using defaults
+Unable to change ownership of /tmp/claude-0/-home-user/18d9bff4-750b-59e7-ad5d-20d4169d1640/scratchpad/telefonie/fritzdouble/run/asterisk.ctl: No such file or directory
+[0m
